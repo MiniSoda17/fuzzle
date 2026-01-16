@@ -25,7 +25,7 @@ interface MapComponentProps {
 const MapComponent: React.FC<MapComponentProps> = ({ users, onUserClick }) => {
     return (
         <MapContainer
-            center={[51.505, -0.09]}
+            center={[-27.4975, 153.0137]} // Centered on Brisbane (UQ)
             zoom={13}
             scrollWheelZoom={true}
             style={{ width: '100%', height: '100%' }}
@@ -36,16 +36,26 @@ const MapComponent: React.FC<MapComponentProps> = ({ users, onUserClick }) => {
                 url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
             />
 
-            {users.map((user) => (
-                <Marker
-                    key={user.id}
-                    position={[user.lat, user.lng]}
-                    eventHandlers={{
-                        click: () => onUserClick(user),
-                    }}
-                >
-                </Marker>
-            ))}
+            {users.map((user) => {
+                // Create custom icon for each user
+                const customIcon = L.divIcon({
+                    className: 'custom-marker',
+                    html: `<div class="marker-content"><img src="${user.avatarUrl}" alt="${user.name}" /></div>`,
+                    iconSize: [48, 48],
+                    iconAnchor: [24, 24]
+                });
+
+                return (
+                    <Marker
+                        key={user.id}
+                        position={[user.lat, user.lng]}
+                        icon={customIcon}
+                        eventHandlers={{
+                            click: () => onUserClick(user),
+                        }}
+                    />
+                );
+            })}
         </MapContainer>
     );
 };
