@@ -1,5 +1,5 @@
 {
-  "name": "fuzzle-dashboard",
+  "name": "temp_fuzzle",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -10,10 +10,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@tailwindcss/vite": "^4.1.18",
+    "@types/leaflet": "^1.9.21",
+    "@types/uuid": "^10.0.0",
+    "framer-motion": "^12.26.2",
+    "leaflet": "^1.9.4",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "tailwindcss": "^4.1.18"
+    "react-leaflet": "^5.0.0",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

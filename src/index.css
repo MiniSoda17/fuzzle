@@ -1,0 +1,108 @@
+:root {
+  /* Color Palette - Cyber/Premium Dark Mode */
+  --bg-color: #0d1117;
+  --text-color: #e6edf3;
+  --primary-color: #7c3aed; /* Violet */
+  --primary-hover: #6d28d9;
+  --secondary-color: #10b981; /* Emerald */
+  --accent-color: #f43f5e; /* Rose */
+  --surface-color: #161b22;
+  --glass-bg: rgba(22, 27, 34, 0.7);
+  --border-color: #30363d;
+  
+  /* Spacing & Radius */
+  --radius-lg: 24px;
+  --radius-md: 16px;
+  --radius-sm: 8px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  
+  /* Fonts */
+  --font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent; /* Remove mobile tap highlight */
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  line-height: 1.5;
+  font-weight: 400;
+  overflow: hidden; /* App-like feel */
+  user-select: none; /* App-like feel */
+}
+
+#root {
+  width: 100vw;
+  height: 100dvh; /* Dynamic Viewport Height for mobile */
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  outline: none;
+}
+
+input, textarea {
+  font-family: inherit;
+}
+
+/* Utilities */
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+  color: white;
+  padding: 12px 24px;
+  border-radius: 50px; /* Pill shape */
+  font-weight: 600;
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.4);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-primary:active {
+  transform: scale(0.96);
+}
+
+.fade-enter {
+  opacity: 0;
+  transform: scale(0.9);
+}
+.fade-enter-active {
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity 300ms, transform 300ms;
+}
+.fade-exit {
+  opacity: 1;
+}
+.fade-exit-active {
+  opacity: 0;
+  transition: opacity 200ms;
+}
+
+/* Map specific overrides */
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  background: var(--bg-color);
+  z-index: 1;
+}
