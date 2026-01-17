@@ -8,6 +8,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import MeetupFlow from '@/components/MeetupFlow';
 import ProfileSidebar from '@/components/ProfileSidebar';
 import EditProfileSidebar from '@/components/EditProfileSidebar';
+import IncomingRequestModal from '@/components/IncomingRequestModal';
 import { UserIcon } from '@heroicons/react/24/solid';
 
 // Dynamically import MapComponent to disable SSR
@@ -22,6 +23,7 @@ export default function Home() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [viewState, setViewState] = useState<'map' | 'meetup-offer' | 'timer' | 'confirmed'>('map');
+  const [incomingRequest, setIncomingRequest] = useState<{ id: string; sender_id: string; activity: string } | null>(null);
 
   // 1. Initial Data Fetch & Realtime Subscription
   useEffect(() => {
@@ -66,8 +68,9 @@ export default function Home() {
     const meetupSubscription = supabase
       .channel('public:meetups')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'meetups', filter: `receiver_id=eq.${currentUser.id}` }, (payload) => {
-        alert(`New Meetup Request from ${payload.new.sender_id}! (Integration: Display Modal Here)`);
-        // In real app: setViewState('meetup-received') or similar
+        if (payload.new.status === 'pending') {
+          setIncomingRequest(payload.new as any);
+        }
       })
       .subscribe();
 
@@ -184,6 +187,16 @@ export default function Home() {
         </motion.button>
       )}
 
+      {/* Incoming Request Modal */}
+      <AnimatePresence>
+        {incomingRequest && (
+          <IncomingRequestModal
+            request={incomingRequest}
+            onClose={() => setIncomingRequest(null)}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Edit Profile Sidebar */}
       <AnimatePresence>
         {isEditingProfile && currentUser && (
@@ -222,6 +235,7 @@ export default function Home() {
           >
             <MeetupFlow
               targetUser={selectedUser}
+              currentUser={currentUser}
               onClose={() => setViewState('map')}
               onConfirm={() => {
                 setViewState('confirmed'); // Internal state of MeetupFlow handles the UI, but we track it here too if needed
