@@ -17,16 +17,7 @@ export async function POST(req: Request) {
             payment_method_types: ['card'],
             line_items: [
                 {
-                    price_data: {
-                        currency: 'usd',
-                        product_data: {
-                            name: 'Colleko Meetup Subscription',
-                        },
-                        unit_amount: 799, // $7.99
-                        recurring: {
-                            interval: 'month',
-                        },
-                    },
+                    price: 'price_1SqVv8Rm2tMRBfxY9Yagb9Mc',
                     quantity: 1,
                 },
             ],
