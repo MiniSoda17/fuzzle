@@ -13,6 +13,31 @@ interface JoinSeshModalProps {
 const JoinSeshModal: React.FC<JoinSeshModalProps> = ({ sesh, currentUser, onClose, onJoined }) => {
     const [isJoining, setIsJoining] = useState(false);
 
+    const [participants, setParticipants] = useState<User[]>([]);
+
+    React.useEffect(() => {
+        const fetchParticipants = async () => {
+            // 1. Get participant IDs from the join table
+            const { data: relations } = await supabase
+                .from('sesh_participants')
+                .select('user_id')
+                .eq('sesh_id', sesh.id);
+
+            const joinedUserIds = relations?.map(r => r.user_id) || [];
+            // 2. Ensure Creator ID is in the list
+            const allUserIds = Array.from(new Set([...joinedUserIds, sesh.creator_id]));
+
+            if (allUserIds.length > 0) {
+                const { data: users } = await supabase
+                    .from('users')
+                    .select('*')
+                    .in('id', allUserIds);
+                if (users) setParticipants(users as User[]);
+            }
+        };
+        fetchParticipants();
+    }, [sesh.id, sesh.creator_id]);
+
     const handleJoin = async () => {
         setIsJoining(true);
         try {
@@ -131,6 +156,32 @@ const JoinSeshModal: React.FC<JoinSeshModalProps> = ({ sesh, currentUser, onClos
                     </p>
                 )}
             </div>
+
+            {/* Participants list */}
+            {participants.length > 0 && (
+                <div style={{ width: '100%', overflowX: 'auto', paddingBottom: '8px' }}>
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                        {participants.map(p => (
+                            <div key={p.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '50px' }}>
+                                <img
+                                    src={p.avatar_url}
+                                    alt={p.name}
+                                    style={{
+                                        width: '40px',
+                                        height: '40px',
+                                        borderRadius: '50%',
+                                        objectFit: 'cover',
+                                        border: '1px solid var(--border-color)'
+                                    }}
+                                />
+                                <span style={{ fontSize: '0.7rem', color: '#8b949e', marginTop: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '50px' }}>
+                                    {p.name.split(' ')[0]}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
                 <button
