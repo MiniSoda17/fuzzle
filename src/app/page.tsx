@@ -89,306 +89,336 @@ export default function Home() {
     };
   }, []);
 
-  // 2. Meetup Notifications
-  useEffect(() => {
-    if (!currentUser) return;
+  import MeetupConfirmedModal from '@/components/MeetupConfirmedModal';
 
-    const meetupSubscription = supabase
-      .channel('public:meetups')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'meetups', filter: `receiver_id=eq.${currentUser.id}` }, (payload) => {
-        if (payload.new.status === 'pending') {
-          setIncomingRequest(payload.new as any);
-        }
-      })
-      .subscribe();
+  // ...
 
-    return () => {
-      supabase.removeChannel(meetupSubscription);
+  export default function Home() {
+    // ... existing state ...
+    const [acceptedMeetup, setAcceptedMeetup] = useState<{ otherUser: User, activity: string } | null>(null);
+
+    // ...
+
+    // 2. Meetup Notifications (Incoming & Outgoing Confirmation)
+    useEffect(() => {
+      if (!currentUser) return;
+
+      const meetupSubscription = supabase
+        .channel('public:meetups')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'meetups', filter: `receiver_id=eq.${currentUser.id}` }, (payload) => {
+          if (payload.new.status === 'pending') {
+            setIncomingRequest(payload.new as any);
+          }
+        })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'meetups', filter: `sender_id=eq.${currentUser.id}` }, async (payload) => {
+          if (payload.new.status === 'accepted') {
+            // Fetch receiver details
+            const { data } = await supabase.from('users').select('*').eq('id', payload.new.receiver_id).single();
+            if (data) {
+              setAcceptedMeetup({ otherUser: data as User, activity: payload.new.activity });
+            }
+          }
+        })
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(meetupSubscription);
+      };
+    }, [currentUser]);
+
+    // 3. Real Geolocation & Mock Jitter
+    useEffect(() => {
+      if (!currentUser) return;
+
+      // A. Get Real Location ONCE on mount/load
+      if (navigator.geolocation) {
+        console.log('Requesting geolocation...');
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            const { latitude, longitude } = position.coords;
+            console.log('Got Real Location:', latitude, longitude);
+
+            // Update Local & DB
+            setCurrentUser(prev => prev ? ({ ...prev, lat: latitude, lng: longitude }) : null);
+            await supabase.from('users').update({ lat: latitude, lng: longitude }).eq('id', currentUser.id);
+          },
+          (error) => {
+            console.error('Error getting location:', error.message);
+            alert('Please enable location access to use Fuzzle!');
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+          }
+        );
+      }
+
+      // B. Keep the Mock Jitter (for "aliveness") but base it on the current/updated location
+      const interval = setInterval(async () => {
+        setCurrentUser(prev => {
+          if (!prev) return null;
+          // Jitter around CURRENT location
+          const newLat = prev.lat + (Math.random() * 0.0001 - 0.00005);
+          const newLng = prev.lng + (Math.random() * 0.0001 - 0.00005);
+
+          // Sync to DB (debounced or just every 5s is fine for MVP)
+          supabase.from('users').update({ lat: newLat, lng: newLng }).eq('id', prev.id).then();
+
+          return { ...prev, lat: newLat, lng: newLng };
+        });
+
+      }, 5000);
+
+      return () => clearInterval(interval);
+    }, [currentUser?.id]); // Only re-run if user ID changes (initially)
+
+    // Track if we've centered the map initially
+    const [initialCenter, setInitialCenter] = useState<[number, number] | undefined>(undefined);
+
+    // Set initial center once we have a user location
+    useEffect(() => {
+      if (currentUser && !initialCenter) {
+        setInitialCenter([currentUser.lat, currentUser.lng]);
+      }
+    }, [currentUser, initialCenter]);
+
+    // Pass initialCenter to map instead of constantly updating one
+    const mapCenter = initialCenter;
+
+
+    const handleUserClick = (user: User) => {
+      // If editing profile, close it first
+      if (isEditingProfile) setIsEditingProfile(false);
+
+      setSelectedUser(user);
+      if (viewState !== 'map') {
+        setViewState('map');
+      }
     };
-  }, [currentUser]);
 
-  // 3. Real Geolocation & Mock Jitter
-  useEffect(() => {
-    if (!currentUser) return;
+    const handleCloseModal = () => {
+      setSelectedUser(null);
+    };
 
-    // A. Get Real Location ONCE on mount/load
-    if (navigator.geolocation) {
-      console.log('Requesting geolocation...');
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const { latitude, longitude } = position.coords;
-          console.log('Got Real Location:', latitude, longitude);
+    const handleSendOffer = () => {
+      setViewState('meetup-offer');
+    };
 
-          // Update Local & DB
-          setCurrentUser(prev => prev ? ({ ...prev, lat: latitude, lng: longitude }) : null);
-          await supabase.from('users').update({ lat: latitude, lng: longitude }).eq('id', currentUser.id);
-        },
-        (error) => {
-          console.error('Error getting location:', error.message);
-          alert('Please enable location access to use Fuzzle!');
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0
-        }
-      );
-    }
+    const handleSaveProfile = async (updatedUser: User) => {
+      console.log('Saving profile:', updatedUser);
+      setCurrentUser(updatedUser);
+      await supabase.from('users').update(updatedUser).eq('id', updatedUser.id);
+    };
 
-    // B. Keep the Mock Jitter (for "aliveness") but base it on the current/updated location
-    const interval = setInterval(async () => {
-      setCurrentUser(prev => {
-        if (!prev) return null;
-        // Jitter around CURRENT location
-        const newLat = prev.lat + (Math.random() * 0.0001 - 0.00005);
-        const newLng = prev.lng + (Math.random() * 0.0001 - 0.00005);
+    return (
+      <main style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
+        {/* Map Layer */}
+        <MapComponent
+          users={users}
+          seshes={seshes}
+          onUserClick={handleUserClick}
+          onSeshClick={setSelectedSesh}
+          center={mapCenter}
+        />
 
-        // Sync to DB (debounced or just every 5s is fine for MVP)
-        supabase.from('users').update({ lat: newLat, lng: newLng }).eq('id', prev.id).then();
-
-        return { ...prev, lat: newLat, lng: newLng };
-      });
-
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [currentUser?.id]); // Only re-run if user ID changes (initially)
-
-  // Track if we've centered the map initially
-  const [initialCenter, setInitialCenter] = useState<[number, number] | undefined>(undefined);
-
-  // Set initial center once we have a user location
-  useEffect(() => {
-    if (currentUser && !initialCenter) {
-      setInitialCenter([currentUser.lat, currentUser.lng]);
-    }
-  }, [currentUser, initialCenter]);
-
-  // Pass initialCenter to map instead of constantly updating one
-  const mapCenter = initialCenter;
-
-
-  const handleUserClick = (user: User) => {
-    // If editing profile, close it first
-    if (isEditingProfile) setIsEditingProfile(false);
-
-    setSelectedUser(user);
-    if (viewState !== 'map') {
-      setViewState('map');
-    }
-  };
-
-  const handleCloseModal = () => {
-    setSelectedUser(null);
-  };
-
-  const handleSendOffer = () => {
-    setViewState('meetup-offer');
-  };
-
-  const handleSaveProfile = async (updatedUser: User) => {
-    console.log('Saving profile:', updatedUser);
-    setCurrentUser(updatedUser);
-    await supabase.from('users').update(updatedUser).eq('id', updatedUser.id);
-  };
-
-  return (
-    <main style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
-      {/* Map Layer */}
-      <MapComponent
-        users={users}
-        seshes={seshes}
-        onUserClick={handleUserClick}
-        onSeshClick={setSelectedSesh}
-        center={mapCenter}
-      />
-
-      {/* Profile Button (Top Left) */}
-      {currentUser && (
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => {
-            setSelectedUser(null);
-            setIsEditingProfile(true);
-          }}
-          className="glass-panel"
-          style={{
-            position: 'absolute',
-            top: '16px',
-            left: '16px',
-            width: '48px',
-            height: '48px',
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: 0,
-            overflow: 'hidden',
-            border: '2px solid var(--primary-color)',
-            cursor: 'pointer'
-          }}
-        >
-          {currentUser.avatar_url ? (
-            <img
-              src={currentUser.avatar_url}
-              alt="Profile"
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            />
-          ) : (
-            <UserIcon style={{ width: '28px', height: '28px', color: 'var(--primary-color)' }} />
-          )}
-        </motion.button>
-      )}
-
-      {/* Incoming Request Modal */}
-      <AnimatePresence>
-        {incomingRequest && (
-          <IncomingRequestModal
-            request={incomingRequest}
-            onClose={() => setIncomingRequest(null)}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Edit Profile Sidebar */}
-      <AnimatePresence>
-        {isEditingProfile && currentUser && (
-          <EditProfileSidebar
-            user={currentUser}
-            onClose={() => setIsEditingProfile(false)}
-            onSave={handleSaveProfile}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Profile/Interaction Overlay */}
-      <AnimatePresence>
-        {selectedUser && viewState === 'map' && (
-          <ProfileSidebar
-            user={selectedUser}
-            onClose={handleCloseModal}
-            onOffer={handleSendOffer}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Meetup Flow Overlay */}
-      <AnimatePresence>
-        {(viewState === 'meetup-offer' || viewState === 'timer' || viewState === 'confirmed') && selectedUser && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, x: "-50%", y: "-50%" }}
-            animate={{ opacity: 1, scale: 1, x: "-50%", y: "-50%" }}
-            exit={{ opacity: 0, scale: 0.95, x: "-50%", y: "-50%" }}
-            className="glass-panel meetup-modal"
+        {/* Profile Button (Top Left) */}
+        {currentUser && (
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => {
+              setSelectedUser(null);
+              setIsEditingProfile(true);
+            }}
+            className="glass-panel"
             style={{
               position: 'absolute',
-              zIndex: 1001,
-              overflowY: 'auto'
+              top: '16px',
+              left: '16px',
+              width: '48px',
+              height: '48px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1000,
+              padding: 0,
+              overflow: 'hidden',
+              border: '2px solid var(--primary-color)',
+              cursor: 'pointer'
             }}
           >
-            <MeetupFlow
-              targetUser={selectedUser}
-              currentUser={currentUser}
-              onClose={() => setViewState('map')}
-              onConfirm={() => {
-                setViewState('confirmed'); // Internal state of MeetupFlow handles the UI, but we track it here too if needed
-                setTimeout(() => {
-                  setViewState('map');
-                  setSelectedUser(null);
-                }, 2000);
-              }}
-            />
-          </motion.div>
+            {currentUser.avatar_url ? (
+              <img
+                src={currentUser.avatar_url}
+                alt="Profile"
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            ) : (
+              <UserIcon style={{ width: '28px', height: '28px', color: 'var(--primary-color)' }} />
+            )}
+          </motion.button>
         )}
-      </AnimatePresence>
-      {/* Sesh Creation FAB */}
-      {currentUser && !isCreatingSesh && !selectedSesh && !selectedUser && viewState === 'map' && (
-        <motion.button
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          onClick={() => setIsCreatingSesh(true)}
-          className="fab-button btn-primary"
-          style={{
-            position: 'absolute',
-            bottom: '32px',
-            left: '50%',
-            transform: 'translateX(-50%)', // This will be overridden by motion, handle carefully
-            marginLeft: '-28px', // Half width centering hack if transform conflicts
-            width: '56px',
-            height: '56px',
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            boxShadow: '0 4px 20px rgba(124, 58, 237, 0.6)',
-            padding: 0
-          }}
-        >
-          <PlusIcon style={{ width: '32px', height: '32px', color: 'white' }} />
-        </motion.button>
-      )}
 
-      {/* Create Sesh Modal */}
-      <AnimatePresence>
-        {isCreatingSesh && currentUser && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.6 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsCreatingSesh(false)}
-              style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background: 'black',
-                zIndex: 1001
-              }}
+        {/* Incoming Request Modal */}
+        <AnimatePresence>
+          {incomingRequest && (
+            <IncomingRequestModal
+              request={incomingRequest}
+              onClose={() => setIncomingRequest(null)}
             />
-            <CreateSeshModal
-              currentUser={currentUser}
-              onClose={() => setIsCreatingSesh(false)}
-              onCreated={() => setIsCreatingSesh(false)}
-            />
-          </>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>
 
-      {/* Join Sesh Modal */}
-      <AnimatePresence>
-        {selectedSesh && currentUser && (
-          <>
+        {/* Edit Profile Sidebar */}
+        <AnimatePresence>
+          {isEditingProfile && currentUser && (
+            <EditProfileSidebar
+              user={currentUser}
+              onClose={() => setIsEditingProfile(false)}
+              onSave={handleSaveProfile}
+            />
+          )}
+        </AnimatePresence>
+
+        {/* Profile/Interaction Overlay */}
+        <AnimatePresence>
+          {selectedUser && viewState === 'map' && (
+            <ProfileSidebar
+              user={selectedUser}
+              onClose={handleCloseModal}
+              onOffer={handleSendOffer}
+            />
+          )}
+        </AnimatePresence>
+
+        {/* Meetup Flow Overlay */}
+        <AnimatePresence>
+          {(viewState === 'meetup-offer' || viewState === 'timer' || viewState === 'confirmed') && selectedUser && (
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.6 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setSelectedSesh(null)}
+              initial={{ opacity: 0, scale: 0.95, x: "-50%", y: "-50%" }}
+              animate={{ opacity: 1, scale: 1, x: "-50%", y: "-50%" }}
+              exit={{ opacity: 0, scale: 0.95, x: "-50%", y: "-50%" }}
+              className="glass-panel meetup-modal"
               style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background: 'black',
-                zIndex: 1002
+                position: 'absolute',
+                zIndex: 1001,
+                overflowY: 'auto'
               }}
-            />
-            <JoinSeshModal
-              sesh={selectedSesh}
-              currentUser={currentUser}
-              onClose={() => setSelectedSesh(null)}
-              onJoined={() => setSelectedSesh(null)} // Refresh will reuse subscription
-            />
-          </>
+            >
+              <MeetupFlow
+                targetUser={selectedUser}
+                currentUser={currentUser}
+                onClose={() => setViewState('map')}
+                onConfirm={() => {
+                  setViewState('confirmed'); // Internal state of MeetupFlow handles the UI, but we track it here too if needed
+                  setTimeout(() => {
+                    setViewState('map');
+                    setSelectedUser(null);
+                  }, 2000);
+                }}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+        {/* Sesh Creation FAB */}
+        {currentUser && !isCreatingSesh && !selectedSesh && !selectedUser && viewState === 'map' && (
+          <motion.button
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setIsCreatingSesh(true)}
+            className="fab-button btn-primary"
+            style={{
+              position: 'absolute',
+              bottom: '32px',
+              left: '50%',
+              transform: 'translateX(-50%)', // This will be overridden by motion, handle carefully
+              marginLeft: '-28px', // Half width centering hack if transform conflicts
+              width: '56px',
+              height: '56px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1000,
+              boxShadow: '0 4px 20px rgba(124, 58, 237, 0.6)',
+              padding: 0
+            }}
+          >
+            <PlusIcon style={{ width: '32px', height: '32px', color: 'white' }} />
+          </motion.button>
         )}
-      </AnimatePresence>
-    </main>
-  );
-}
+
+        {/* Create Sesh Modal */}
+        <AnimatePresence>
+          {isCreatingSesh && currentUser && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.6 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsCreatingSesh(false)}
+                style={{
+                  position: 'fixed',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  background: 'black',
+                  zIndex: 1001
+                }}
+              />
+              <CreateSeshModal
+                currentUser={currentUser}
+                onClose={() => setIsCreatingSesh(false)}
+                onCreated={() => setIsCreatingSesh(false)}
+              />
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* Join Sesh Modal */}
+        <AnimatePresence>
+          {selectedSesh && currentUser && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.6 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setSelectedSesh(null)}
+                style={{
+                  position: 'fixed',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  background: 'black',
+                  zIndex: 1002
+                }}
+              />
+              <JoinSeshModal
+                sesh={selectedSesh}
+                currentUser={currentUser}
+                onClose={() => setSelectedSesh(null)}
+                onJoined={() => setSelectedSesh(null)} // Refresh will reuse subscription
+              />
+            </>
+          )}
+        </AnimatePresence>
+        {/* Accepted/Confirmed Modal (Global) */}
+        <AnimatePresence>
+          {acceptedMeetup && (
+            <MeetupConfirmedModal
+              otherUser={acceptedMeetup.otherUser}
+              activity={acceptedMeetup.activity}
+              onClose={() => setAcceptedMeetup(null)}
+            />
+          )}
+        </AnimatePresence>
+
+      </main>
+    );
+  }

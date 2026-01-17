@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import type { User } from '../types';
+import { CheckCircleIcon, MapPinIcon } from '@heroicons/react/24/solid';
 
 interface IncomingRequestModalProps {
     request: {
@@ -14,8 +15,19 @@ interface IncomingRequestModalProps {
     onClose: () => void;
 }
 
+
+
+const ACTIVITIES_MAP: Record<string, { emoji: string; label: string }> = {
+    'study': { emoji: '📚', label: 'Study' },
+    'hoops': { emoji: '🏀', label: 'Shoot Hoops' },
+    'coffee': { emoji: '☕️', label: 'Coffee Chat' },
+    'food': { emoji: '🍔', label: 'Grab Food' },
+    'walk': { emoji: '🚶', label: 'Walk' },
+};
+
 export default function IncomingRequestModal({ request, onClose }: IncomingRequestModalProps) {
     const [sender, setSender] = useState<User | null>(null);
+    const [isAccepted, setIsAccepted] = useState(false);
 
     useEffect(() => {
         const fetchSender = async () => {
@@ -27,10 +39,74 @@ export default function IncomingRequestModal({ request, onClose }: IncomingReque
 
     const handleResponse = async (status: 'accepted' | 'rejected') => {
         await supabase.from('meetups').update({ status }).eq('id', request.id);
-        onClose();
+        if (status === 'accepted') {
+            setIsAccepted(true);
+        } else {
+            onClose();
+        }
     };
 
     if (!sender) return null;
+
+    if (isAccepted) {
+        const actInfo = ACTIVITIES_MAP[request.activity] || { emoji: '✨', label: request.activity };
+
+        return (
+            <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="glass-panel"
+                style={{
+                    position: 'absolute',
+                    bottom: '24px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: '90%',
+                    maxWidth: '400px',
+                    padding: '32px',
+                    zIndex: 2000,
+                    textAlign: 'center'
+                }}
+            >
+                <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'center' }}>
+                    <CheckCircleIcon style={{ width: '80px', height: '80px', color: 'var(--secondary-color)' }} />
+                </div>
+                <h2 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--secondary-color)', marginBottom: '8px' }}>Accepted!</h2>
+
+                <div style={{
+                    background: 'rgba(16, 185, 129, 0.1)',
+                    border: '1px solid var(--secondary-color)',
+                    borderRadius: '16px',
+                    padding: '16px',
+                    marginBottom: '24px',
+                    textAlign: 'left'
+                }}>
+                    <div style={{ marginBottom: '12px' }}>
+                        <p style={{ color: '#aaa', fontSize: '0.9rem' }}>Activity</p>
+                        <p style={{ fontSize: '1.1rem', fontWeight: 600 }}>
+                            {actInfo.emoji} {actInfo.label} with {sender.name}
+                        </p>
+                    </div>
+                    <div>
+                        <p style={{ color: '#aaa', fontSize: '0.9rem' }}>Meeting Point</p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <MapPinIcon style={{ width: '20px', height: '20px', color: '#ef4444' }} />
+                            <p style={{ fontSize: '1.1rem', fontWeight: 600 }}>Main Library Entrance</p>
+                        </div>
+                    </div>
+                </div>
+
+                <button
+                    className="btn-primary"
+                    style={{ width: '100%', background: 'var(--secondary-color)' }}
+                    onClick={onClose}
+                >
+                    Lets Go!
+                </button>
+            </motion.div>
+        );
+    }
 
     return (
         <motion.div

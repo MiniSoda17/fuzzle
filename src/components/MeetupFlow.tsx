@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import type { ActivityType, User } from '../types';
 import { supabase } from '@/lib/supabase';
+import { CheckCircleIcon, MapPinIcon } from '@heroicons/react/24/solid';
 
 interface MeetupFlowProps {
     targetUser: User;
@@ -193,9 +194,9 @@ const MeetupFlow: React.FC<MeetupFlowProps> = ({ targetUser, currentUser, onClos
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ type: "spring" }}
-                style={{ fontSize: '64px', marginBottom: '16px' }}
+                style={{ marginBottom: '16px', display: 'flex', justifyContent: 'center' }}
             >
-                ✅
+                <CheckCircleIcon style={{ width: '80px', height: '80px', color: 'var(--secondary-color)' }} />
             </motion.div>
             <h2 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--secondary-color)', marginBottom: '16px' }}>Accepted!</h2>
 
@@ -207,13 +208,20 @@ const MeetupFlow: React.FC<MeetupFlowProps> = ({ targetUser, currentUser, onClos
                 marginBottom: '24px',
                 textAlign: 'left'
             }}>
-                <p style={{ color: '#aaa', fontSize: '0.9rem' }}>Activity</p>
-                <p style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '12px' }}>
-                    {ACTIVITIES.find(a => a.type === selectedActivity)?.emoji} {ACTIVITIES.find(a => a.type === selectedActivity)?.label} with {targetUser.name}
-                </p>
+                <div style={{ marginBottom: '12px' }}>
+                    <p style={{ color: '#aaa', fontSize: '0.9rem' }}>Activity</p>
+                    <p style={{ fontSize: '1.1rem', fontWeight: 600 }}>
+                        {ACTIVITIES.find(a => a.type === selectedActivity)?.emoji} {ACTIVITIES.find(a => a.type === selectedActivity)?.label} with {targetUser.name}
+                    </p>
+                </div>
 
-                <p style={{ color: '#aaa', fontSize: '0.9rem' }}>Meeting Point</p>
-                <p style={{ fontSize: '1.1rem', fontWeight: 600 }}>📍 Main Library Entrance</p>
+                <div>
+                    <p style={{ color: '#aaa', fontSize: '0.9rem' }}>Meeting Point</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <MapPinIcon style={{ width: '20px', height: '20px', color: '#ef4444' }} />
+                        <p style={{ fontSize: '1.1rem', fontWeight: 600 }}>Main Library Entrance</p>
+                    </div>
+                </div>
             </div>
 
             <button
