@@ -271,10 +271,11 @@ export default function SignupPage() {
                                         }}
                                     >
                                         <div style={{
-                                            width: '60px', height: '60px', borderRadius: '8px',
-                                            background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px'
+                                            width: '60px', height: '60px', minWidth: '60px', minHeight: '60px', borderRadius: '8px',
+                                            background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px',
+                                            flexShrink: 0
                                         }}>
-                                            <img src={uni.logo} alt={uni.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                            <img src={uni.logo} alt={uni.name} width={60} height={60} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
                                         </div>
                                         <span style={{ fontSize: '0.85rem', color: 'white', textAlign: 'center', fontWeight: 500 }}>
                                             {uni.name}
