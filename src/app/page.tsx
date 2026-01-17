@@ -8,6 +8,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import MeetupFlow from '@/components/MeetupFlow';
 import ProfileSidebar from '@/components/ProfileSidebar';
 import EditProfileSidebar from '@/components/EditProfileSidebar';
+import IncomingRequestModal from '@/components/IncomingRequestModal';
 import { UserIcon } from '@heroicons/react/24/solid';
 
 // Dynamically import MapComponent to disable SSR
@@ -22,6 +23,7 @@ export default function Home() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [viewState, setViewState] = useState<'map' | 'meetup-offer' | 'timer' | 'confirmed'>('map');
+  const [incomingRequest, setIncomingRequest] = useState<{ id: string; sender_id: string; activity: string } | null>(null);
 
   // 1. Initial Data Fetch & Realtime Subscription
   useEffect(() => {
@@ -66,8 +68,9 @@ export default function Home() {
     const meetupSubscription = supabase
       .channel('public:meetups')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'meetups', filter: `receiver_id=eq.${currentUser.id}` }, (payload) => {
-        alert(`New Meetup Request from ${payload.new.sender_id}! (Integration: Display Modal Here)`);
-        // In real app: setViewState('meetup-received') or similar
+        if (payload.new.status === 'pending') {
+          setIncomingRequest(payload.new as any);
+        }
       })
       .subscribe();
 
@@ -82,6 +85,7 @@ export default function Home() {
 
     // A. Get Real Location ONCE on mount/load
     if (navigator.geolocation) {
+      console.log('Requesting geolocation...');
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const { latitude, longitude } = position.coords;
@@ -92,7 +96,13 @@ export default function Home() {
           await supabase.from('users').update({ lat: latitude, lng: longitude }).eq('id', currentUser.id);
         },
         (error) => {
-          console.error('Error getting location:', error);
+          console.error('Error getting location:', error.message);
+          alert('Please enable location access to use Fuzzle!');
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
         }
       );
     }
@@ -176,13 +186,27 @@ export default function Home() {
             cursor: 'pointer'
           }}
         >
-          <img
-            src={currentUser.avatarUrl}
-            alt="Profile"
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          />
+          {currentUser.avatarUrl ? (
+            <img
+              src={currentUser.avatarUrl}
+              alt="Profile"
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+          ) : (
+            <UserIcon style={{ width: '28px', height: '28px', color: 'var(--primary-color)' }} />
+          )}
         </motion.button>
       )}
+
+      {/* Incoming Request Modal */}
+      <AnimatePresence>
+        {incomingRequest && (
+          <IncomingRequestModal
+            request={incomingRequest}
+            onClose={() => setIncomingRequest(null)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Edit Profile Sidebar */}
       <AnimatePresence>
@@ -222,6 +246,7 @@ export default function Home() {
           >
             <MeetupFlow
               targetUser={selectedUser}
+              currentUser={currentUser}
               onClose={() => setViewState('map')}
               onConfirm={() => {
                 setViewState('confirmed'); // Internal state of MeetupFlow handles the UI, but we track it here too if needed

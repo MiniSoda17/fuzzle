@@ -3,9 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import type { ActivityType, User } from '../types';
+import { supabase } from '@/lib/supabase';
 
 interface MeetupFlowProps {
     targetUser: User;
+    currentUser: User | null;
     onClose: () => void;
     onConfirm: () => void; // Called when meetup is finalized
 }
@@ -18,10 +20,11 @@ const ACTIVITIES: { type: ActivityType; emoji: string; label: string }[] = [
     { type: 'walk', emoji: '🚶', label: 'Walk' },
 ];
 
-const MeetupFlow: React.FC<MeetupFlowProps> = ({ targetUser, onClose, onConfirm }) => {
+const MeetupFlow: React.FC<MeetupFlowProps> = ({ targetUser, currentUser, onClose, onConfirm }) => {
     const [step, setStep] = useState<'select' | 'waiting' | 'accepted'>('select');
     const [selectedActivity, setSelectedActivity] = useState<ActivityType | null>(null);
-    const [timeLeft, setTimeLeft] = useState(30 * 60); // 30 minutes in seconds
+    const [meetupId, setMeetupId] = useState<string | null>(null);
+    const [timeLeft, setTimeLeft] = useState(30 * 60);
 
     // Timer logic
     useEffect(() => {
@@ -30,17 +33,35 @@ const MeetupFlow: React.FC<MeetupFlowProps> = ({ targetUser, onClose, onConfirm 
                 setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
             }, 1000);
 
-            // Simulate acceptance after 3 seconds
-            const acceptanceTimeout = setTimeout(() => {
-                setStep('accepted');
-            }, 3000);
-
-            return () => {
-                clearInterval(timer);
-                clearTimeout(acceptanceTimeout);
-            };
+            return () => clearInterval(timer);
         }
     }, [step]);
+
+    // Cleanup subscription on unmount or success
+    useEffect(() => {
+        if (!meetupId) return;
+
+        const channel = supabase
+            .channel(`meetup:${meetupId}`)
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'meetups',
+                filter: `id=eq.${meetupId}`
+            }, (payload) => {
+                if (payload.new.status === 'accepted') {
+                    setStep('accepted');
+                } else if (payload.new.status === 'rejected') {
+                    alert('Request declined.');
+                    onClose();
+                }
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [meetupId, onClose]);
 
     const formatTime = (seconds: number) => {
         const min = Math.floor(seconds / 60);
@@ -48,9 +69,28 @@ const MeetupFlow: React.FC<MeetupFlowProps> = ({ targetUser, onClose, onConfirm 
         return `${min}:${sec.toString().padStart(2, '0')}`;
     };
 
-    const handleSend = () => {
-        if (selectedActivity) {
-            setStep('waiting');
+    const handleSend = async () => {
+        if (selectedActivity && currentUser) {
+            try {
+                const { data, error } = await supabase
+                    .from('meetups')
+                    .insert({
+                        sender_id: currentUser.id,
+                        receiver_id: targetUser.id,
+                        activity: selectedActivity,
+                        status: 'pending'
+                    })
+                    .select()
+                    .single();
+
+                if (error) throw error;
+                if (data) {
+                    setMeetupId(data.id);
+                    setStep('waiting');
+                }
+            } catch (err: any) {
+                alert('Failed to send request: ' + err.message);
+            }
         }
     };
 
