@@ -43,7 +43,7 @@ export interface Meetup {
     sender_id: string;
     receiver_id: string;
     activity: ActivityType;
-    status: 'pending' | 'accepted' | 'rejected';
+    status: 'pending' | 'accepted' | 'rejected' | 'completed' | 'no_show';
     created_at: string;
     meetup_time?: string; // e.g. "14:30"
     location_name?: string;

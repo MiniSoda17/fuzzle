@@ -15,7 +15,7 @@ interface MeetupRecord {
     id: string;
     created_at: string;
     activity: string;
-    status: 'pending' | 'accepted' | 'rejected';
+    status: 'pending' | 'accepted' | 'rejected' | 'completed' | 'no_show';
     sender_id: string;
     receiver_id: string;
     contact_name?: string;
@@ -36,7 +36,7 @@ const NotificationItem = ({
     currentUser: User,
     isExpanded: boolean,
     onToggle: () => void,
-    onUpdateStatus: (id: string, status: 'accepted' | 'rejected') => void
+    onUpdateStatus: (id: string, status: 'accepted' | 'rejected' | 'completed' | 'no_show') => void
 }) => {
     const [timeLeft, setTimeLeft] = useState<string>('');
     const isIncoming = item.sender_id !== currentUser.id;
@@ -122,7 +122,7 @@ const NotificationItem = ({
                 <div style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s' }}>
                     {item.status === 'pending' ? (
                         <ChevronDownIcon width={20} color="#aaa" />
-                    ) : item.status === 'accepted' ? (
+                    ) : (item.status === 'accepted' || item.status === 'completed') ? (
                         <CheckCircleIcon width={24} color="var(--secondary-color)" />
                     ) : (
                         <XCircleIcon width={24} color="#ef4444" />
@@ -171,11 +171,11 @@ const NotificationItem = ({
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                                 <div style={{ fontSize: '0.85rem', color: '#bbb' }}>
                                     Status: <span style={{
-                                        color: item.status === 'accepted' ? 'var(--secondary-color)' :
-                                            item.status === 'rejected' ? '#ef4444' : '#fbbf24',
+                                        color: (item.status === 'accepted' || item.status === 'completed') ? 'var(--secondary-color)' :
+                                            (item.status === 'rejected' || item.status === 'no_show') ? '#ef4444' : '#fbbf24',
                                         fontWeight: 600
                                     }}>
-                                        {item.status.toUpperCase()}
+                                        {item.status.toUpperCase().replace('_', ' ')}
                                     </span>
                                 </div>
                                 {item.status === 'pending' && (
@@ -264,7 +264,7 @@ export default function NotificationList({ currentUser, onClose }: NotificationL
         fetchHistory();
     }, [currentUser.id]);
 
-    const handleUpdateStatus = async (id: string, status: 'accepted' | 'rejected') => {
+    const handleUpdateStatus = async (id: string, status: 'accepted' | 'rejected' | 'completed' | 'no_show') => {
         // Optimistic update
         setMeetups(prev => prev.map(m => m.id === id ? { ...m, status } : m));
 

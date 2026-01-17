@@ -35,6 +35,7 @@ export default function Home() {
   }, [viewState]);
 
   const [incomingRequest, setIncomingRequest] = useState<Meetup | null>(null);
+  const [activeMeetup, setActiveMeetup] = useState<Meetup | null>(null);
 
   // Sesh State
   const [seshes, setSeshes] = useState<Sesh[]>([]);
@@ -143,6 +144,21 @@ export default function Home() {
     };
 
     checkActiveSession();
+
+    // Check for active meetup
+    const checkActiveMeetup = async () => {
+      const { data } = await supabase
+        .from('meetups')
+        .select('*')
+        .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`)
+        .eq('status', 'accepted')
+        .single();
+
+      if (data) {
+        setActiveMeetup(data as Meetup);
+      }
+    };
+    checkActiveMeetup();
   }, [currentUser]);
 
 
@@ -158,21 +174,32 @@ export default function Home() {
           setIncomingRequest(payload.new as any);
         }
       })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'meetups', filter: `sender_id=eq.${currentUser.id}` }, async (payload) => {
-        if (payload.new.status === 'accepted') {
-          // If we are currently in the meetup flow, let the flow handle the confirmation
-          if (viewStateRef.current === 'meetup-offer') return;
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'meetups' }, async (payload) => {
+        const m = payload.new as Meetup;
+        const isParticipant = m.sender_id === currentUser.id || m.receiver_id === currentUser.id;
 
-          // Fetch receiver details
-          const { data } = await supabase.from('users').select('*').eq('id', payload.new.receiver_id).single();
-          if (data) {
-            setAcceptedMeetup({
-              otherUser: data as User,
-              activity: payload.new.activity,
-              location: payload.new.location_name,
-              time: payload.new.meetup_time
-            });
+        if (!isParticipant) return;
+
+        if (m.status === 'accepted') {
+          setActiveMeetup(m);
+
+          // If I am the sender, show the confirmed modal (only if not already in flow)
+          if (m.sender_id === currentUser.id) {
+            if (viewStateRef.current === 'meetup-offer') return;
+
+            const { data } = await supabase.from('users').select('*').eq('id', m.receiver_id).single();
+            if (data) {
+              setAcceptedMeetup({
+                otherUser: data as User,
+                activity: m.activity,
+                location: m.location_name,
+                time: m.meetup_time
+              });
+            }
           }
+        } else if (m.status === 'completed' || m.status === 'no_show') {
+          setActiveMeetup(null);
+          setAcceptedMeetup(null); // Clear modal if open
         }
       })
       .subscribe();
@@ -598,6 +625,74 @@ export default function Home() {
             time={acceptedMeetup.time}
             onClose={() => setAcceptedMeetup(null)}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Active Meetup Controls */}
+      <AnimatePresence>
+        {activeMeetup && currentUser && (
+          <motion.div
+            initial={{ y: 100, x: "-50%", opacity: 0 }}
+            animate={{ y: 0, x: "-50%", opacity: 1 }}
+            exit={{ y: 100, x: "-50%", opacity: 0 }}
+            className="glass-panel"
+            style={{
+              position: 'absolute',
+              bottom: '32px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: '90%',
+              maxWidth: '350px',
+              padding: '20px',
+              zIndex: 900,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+              border: '1px solid var(--secondary-color)',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.4)'
+            }}
+          >
+            <div style={{ textAlign: 'center' }}>
+              <p style={{ fontSize: '0.9rem', color: '#aaa', marginBottom: '4px' }}>Active Meetup</p>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>
+                {activeMeetup.activity === 'study' ? '📚' : '✨'} Meeting {users.find(u => u.id === (activeMeetup.sender_id === currentUser.id ? activeMeetup.receiver_id : activeMeetup.sender_id))?.name || 'Friend'}
+              </h3>
+              {activeMeetup.location_name && (
+                <p style={{ fontSize: '0.9rem', color: 'var(--secondary-color)', marginTop: '4px' }}>
+                  📍 {activeMeetup.location_name}
+                </p>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                onClick={async () => {
+                  await supabase.from('meetups').update({ status: 'no_show' }).eq('id', activeMeetup.id);
+                  setActiveMeetup(null);
+                }}
+                style={{
+                  flex: 1, padding: '12px', borderRadius: '12px',
+                  background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444',
+                  border: '1px solid rgba(239, 68, 68, 0.2)', fontWeight: 600
+                }}
+              >
+                No Show
+              </button>
+              <button
+                onClick={async () => {
+                  await supabase.from('meetups').update({ status: 'completed' }).eq('id', activeMeetup.id);
+                  setActiveMeetup(null);
+                }}
+                style={{
+                  flex: 1, padding: '12px', borderRadius: '12px',
+                  background: 'var(--secondary-color)', color: 'white',
+                  border: 'none', fontWeight: 600
+                }}
+              >
+                Arrived!
+              </button>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
 
