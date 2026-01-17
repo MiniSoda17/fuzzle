@@ -159,7 +159,9 @@ export default function Home() {
       }
     };
     checkActiveMeetup();
-  }, [currentUser]);
+    checkActiveSession();
+    checkActiveMeetup();
+  }, [currentUser?.id]); // Only re-run if ID changes, not on every location update
 
   // Check for Payment Success and Verify
   useEffect(() => {

@@ -46,10 +46,10 @@ const MapComponent: React.FC<MapComponentProps> = ({ users, seshes = [], onUserC
         >
             <MapController center={center} />
 
-            {/* Dark Theme Tiles - CartoDB Dark Matter */}
+            {/* Light Theme Tiles - CartoDB Voyager (Better for places) */}
             <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
             />
 
             {/* Sesh Markers - Keep them outside cluster or inside? Usually outside to stand out */}
