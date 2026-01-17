@@ -11,7 +11,8 @@ import EditProfileSidebar from '@/components/EditProfileSidebar';
 import IncomingRequestModal from '@/components/IncomingRequestModal';
 import CreateSeshModal from '@/components/CreateSeshModal';
 import JoinSeshModal from '@/components/JoinSeshModal';
-import { UserIcon, PlusIcon, BellIcon } from '@heroicons/react/24/solid';
+import ActiveSeshModal from '@/components/ActiveSeshModal';
+import { UserIcon, PlusIcon, BellIcon, SparklesIcon } from '@heroicons/react/24/solid';
 import MeetupConfirmedModal from '@/components/MeetupConfirmedModal';
 import NotificationList from '@/components/NotificationList';
 
@@ -33,6 +34,8 @@ export default function Home() {
   const [seshes, setSeshes] = useState<Sesh[]>([]);
   const [isCreatingSesh, setIsCreatingSesh] = useState(false);
   const [selectedSesh, setSelectedSesh] = useState<Sesh | null>(null);
+  const [activeSesh, setActiveSesh] = useState<Sesh | null>(null); // Track the session user is IN
+  const [showActiveSeshModal, setShowActiveSeshModal] = useState(false);
   const [acceptedMeetup, setAcceptedMeetup] = useState<{ otherUser: User, activity: string } | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
 
@@ -92,6 +95,49 @@ export default function Home() {
       supabase.removeChannel(seshSubscription);
     };
   }, []);
+
+  // New Effect: Check for Active Session when currentUser is loaded
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const checkActiveSession = async () => {
+      // 1. Check if I am a participant
+      const { data: participations } = await supabase
+        .from('sesh_participants')
+        .select('sesh_id')
+        .eq('user_id', currentUser.id);
+
+      if (participations && participations.length > 0) {
+        // Get the first active one
+        const seshId = participations[0].sesh_id;
+        const { data: sesh } = await supabase
+          .from('seshes')
+          .select('*')
+          .eq('id', seshId)
+          .eq('status', 'active')
+          .single();
+
+        if (sesh) {
+          setActiveSesh(sesh as Sesh);
+          return;
+        }
+      }
+
+      // 2. Check if I am a creator of an active sesh
+      const { data: createdSesh } = await supabase
+        .from('seshes')
+        .select('*')
+        .eq('creator_id', currentUser.id)
+        .eq('status', 'active')
+        .single();
+
+      if (createdSesh) {
+        setActiveSesh(createdSesh as Sesh);
+      }
+    };
+
+    checkActiveSession();
+  }, [currentUser]);
 
 
 
@@ -207,6 +253,21 @@ export default function Home() {
     await supabase.from('users').update(updatedUser).eq('id', updatedUser.id);
   };
 
+  const handleLeaveSesh = () => {
+    setActiveSesh(null);
+    setShowActiveSeshModal(false);
+  };
+
+  const handleSeshClick = (sesh: Sesh) => {
+    if (activeSesh && activeSesh.id === sesh.id) {
+      // If clicking the session we are already in, show the Active UI
+      setShowActiveSeshModal(true);
+    } else {
+      // Otherwise show the Join UI
+      setSelectedSesh(sesh);
+    }
+  };
+
   return (
     <main style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
       {/* Map Layer */}
@@ -214,7 +275,7 @@ export default function Home() {
         users={users}
         seshes={seshes}
         onUserClick={handleUserClick}
-        onSeshClick={setSelectedSesh}
+        onSeshClick={handleSeshClick}
         center={mapCenter}
       />
 
@@ -290,6 +351,38 @@ export default function Home() {
         </>
       )}
 
+      {/* Active Session Indicator Pill */}
+      <AnimatePresence>
+        {activeSesh && !showActiveSeshModal && viewState === 'map' && (
+          <motion.div
+            initial={{ y: -100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -100, opacity: 0 }}
+            onClick={() => setShowActiveSeshModal(true)}
+            className="glass-panel"
+            style={{
+              position: 'absolute',
+              top: '80px', // Below profile/bell
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 1000,
+              padding: '8px 16px',
+              borderRadius: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              cursor: 'pointer',
+              border: '1px solid rgba(124, 58, 237, 0.5)',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+            }}
+          >
+            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 8px #22c55e' }} />
+            <span style={{ fontSize: '0.9rem', fontWeight: '600' }}>Active: {activeSesh.title}</span>
+            <SparklesIcon style={{ width: '16px', height: '16px', color: 'var(--primary-color)' }} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Incoming Request Modal */}
       <AnimatePresence>
         {incomingRequest && (
@@ -352,7 +445,7 @@ export default function Home() {
         )}
       </AnimatePresence>
       {/* Sesh Creation FAB */}
-      {currentUser && !isCreatingSesh && !selectedSesh && !selectedUser && viewState === 'map' && (
+      {currentUser && !isCreatingSesh && !selectedSesh && !selectedUser && viewState === 'map' && !activeSesh && (
         <motion.button
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
@@ -403,7 +496,15 @@ export default function Home() {
             <CreateSeshModal
               currentUser={currentUser}
               onClose={() => setIsCreatingSesh(false)}
-              onCreated={() => setIsCreatingSesh(false)}
+              onCreated={() => {
+                setIsCreatingSesh(false);
+                // Refresh active session immediately after creation
+                const checkNewSesh = async () => {
+                  const { data: createdSesh } = await supabase.from('seshes').select('*').eq('creator_id', currentUser.id).eq('status', 'active').order('created_at', { ascending: false }).limit(1).single();
+                  if (createdSesh) setActiveSesh(createdSesh as Sesh);
+                };
+                checkNewSesh();
+              }}
             />
           </>
         )}
@@ -432,11 +533,44 @@ export default function Home() {
               sesh={selectedSesh}
               currentUser={currentUser}
               onClose={() => setSelectedSesh(null)}
-              onJoined={() => setSelectedSesh(null)} // Refresh will reuse subscription
+              onJoined={() => {
+                setSelectedSesh(null);
+                setActiveSesh(selectedSesh); // Set active immediately on join
+              }}
             />
           </>
         )}
       </AnimatePresence>
+
+      {/* Active Sesh Modal */}
+      <AnimatePresence>
+        {activeSesh && showActiveSeshModal && currentUser && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.6 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowActiveSeshModal(false)}
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'black',
+                zIndex: 1002
+              }}
+            />
+            <ActiveSeshModal
+              sesh={activeSesh}
+              currentUser={currentUser}
+              onClose={() => setShowActiveSeshModal(false)}
+              onLeave={handleLeaveSesh}
+            />
+          </>
+        )}
+      </AnimatePresence>
+
       {/* Accepted/Confirmed Modal (Global) */}
       <AnimatePresence>
         {acceptedMeetup && (
