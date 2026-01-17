@@ -77,24 +77,12 @@ function FloatingCard({ top, left, right, delay, name, activity, emoji, avatarCo
         <motion.div
             className={styles.floatingCard}
             style={{
-                position: 'absolute',
                 top,
                 left,
-                right,
-                background: 'rgba(255, 255, 255, 0.9)',
-                backdropFilter: 'blur(20px)',
-                padding: '12px 16px',
-                borderRadius: '16px',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                minWidth: '180px',
-                zIndex: 10,
-                border: '1px solid rgba(255,255,255,0.6)'
+                right
             }}
             initial={{ y: 20, opacity: 0 }}
-            animate={{ y: [0, -10, 0] }}
+            animate={{ y: [0, -10, 0], opacity: 1 }}
             transition={{
                 y: { duration: 4, repeat: Infinity, ease: "easeInOut" },
                 opacity: { duration: 0.8, delay }

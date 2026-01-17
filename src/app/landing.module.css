@@ -483,4 +483,18 @@
     .section {
         padding: 60px 0;
     }
+}.floatingCard {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    padding: 12px 16px;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 180px;
+    z-index: 10;
+    border: 1px solid rgba(255,255,255,0.6);
 }

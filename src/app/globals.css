@@ -39,10 +39,7 @@ body {
   color: var(--text-color);
   line-height: 1.5;
   font-weight: 400;
-  overflow: hidden;
-  /* App-like feel */
-  user-select: none;
-  /* App-like feel */
+  /* App-like feel handled by specific pages */
 }
 
 /* Ensure Next.js root is full height */
