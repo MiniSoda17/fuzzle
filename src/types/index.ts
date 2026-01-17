@@ -38,6 +38,18 @@ export interface SeshParticipant {
     joined_at: string;
 }
 
+export interface Meetup {
+    id: string;
+    sender_id: string;
+    receiver_id: string;
+    activity: ActivityType;
+    status: 'pending' | 'accepted' | 'rejected' | 'completed' | 'no_show';
+    created_at: string;
+    meetup_time?: string; // e.g. "14:30"
+    location_name?: string;
+    message?: string;
+}
+
 export const UNIVERSITIES = {
     UQ: { lat: -27.4975, lng: 153.0137 },
     QUT: { lat: -27.4772, lng: 153.0285 },

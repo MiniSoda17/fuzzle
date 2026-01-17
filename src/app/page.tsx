@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
-import type { User, Sesh } from '../types';
+import type { User, Sesh, Meetup } from '../types';
 import { supabase } from '@/lib/supabase';
 import { AnimatePresence, motion } from 'framer-motion';
 import MeetupFlow from '@/components/MeetupFlow';
@@ -11,7 +11,8 @@ import EditProfileSidebar from '@/components/EditProfileSidebar';
 import IncomingRequestModal from '@/components/IncomingRequestModal';
 import CreateSeshModal from '@/components/CreateSeshModal';
 import JoinSeshModal from '@/components/JoinSeshModal';
-import { UserIcon, PlusIcon, BellIcon } from '@heroicons/react/24/solid';
+import ActiveSeshModal from '@/components/ActiveSeshModal';
+import { UserIcon, PlusIcon, BellIcon, SparklesIcon } from '@heroicons/react/24/solid';
 import MeetupConfirmedModal from '@/components/MeetupConfirmedModal';
 import NotificationList from '@/components/NotificationList';
 
@@ -27,13 +28,22 @@ export default function Home() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [viewState, setViewState] = useState<'map' | 'meetup-offer' | 'timer' | 'confirmed'>('map');
-  const [incomingRequest, setIncomingRequest] = useState<{ id: string; sender_id: string; activity: string } | null>(null);
+  const viewStateRef = useRef(viewState);
+
+  useEffect(() => {
+    viewStateRef.current = viewState;
+  }, [viewState]);
+
+  const [incomingRequest, setIncomingRequest] = useState<Meetup | null>(null);
+  const [activeMeetup, setActiveMeetup] = useState<Meetup | null>(null);
 
   // Sesh State
   const [seshes, setSeshes] = useState<Sesh[]>([]);
   const [isCreatingSesh, setIsCreatingSesh] = useState(false);
   const [selectedSesh, setSelectedSesh] = useState<Sesh | null>(null);
-  const [acceptedMeetup, setAcceptedMeetup] = useState<{ otherUser: User, activity: string } | null>(null);
+  const [activeSesh, setActiveSesh] = useState<Sesh | null>(null); // Track the session user is IN
+  const [showActiveSeshModal, setShowActiveSeshModal] = useState(false);
+  const [acceptedMeetup, setAcceptedMeetup] = useState<{ otherUser: User, activity: string, location?: string, time?: string } | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
 
   // 1. Initial Data Fetch & Realtime Subscription
@@ -93,6 +103,64 @@ export default function Home() {
     };
   }, []);
 
+  // New Effect: Check for Active Session when currentUser is loaded
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const checkActiveSession = async () => {
+      // 1. Check if I am a participant
+      const { data: participations } = await supabase
+        .from('sesh_participants')
+        .select('sesh_id')
+        .eq('user_id', currentUser.id);
+
+      if (participations && participations.length > 0) {
+        // Get the first active one
+        const seshId = participations[0].sesh_id;
+        const { data: sesh } = await supabase
+          .from('seshes')
+          .select('*')
+          .eq('id', seshId)
+          .eq('status', 'active')
+          .single();
+
+        if (sesh) {
+          setActiveSesh(sesh as Sesh);
+          return;
+        }
+      }
+
+      // 2. Check if I am a creator of an active sesh
+      const { data: createdSesh } = await supabase
+        .from('seshes')
+        .select('*')
+        .eq('creator_id', currentUser.id)
+        .eq('status', 'active')
+        .single();
+
+      if (createdSesh) {
+        setActiveSesh(createdSesh as Sesh);
+      }
+    };
+
+    checkActiveSession();
+
+    // Check for active meetup
+    const checkActiveMeetup = async () => {
+      const { data } = await supabase
+        .from('meetups')
+        .select('*')
+        .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`)
+        .eq('status', 'accepted')
+        .single();
+
+      if (data) {
+        setActiveMeetup(data as Meetup);
+      }
+    };
+    checkActiveMeetup();
+  }, [currentUser]);
+
 
 
   // 2. Meetup Notifications (Incoming & Outgoing Confirmation)
@@ -106,13 +174,32 @@ export default function Home() {
           setIncomingRequest(payload.new as any);
         }
       })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'meetups', filter: `sender_id=eq.${currentUser.id}` }, async (payload) => {
-        if (payload.new.status === 'accepted') {
-          // Fetch receiver details
-          const { data } = await supabase.from('users').select('*').eq('id', payload.new.receiver_id).single();
-          if (data) {
-            setAcceptedMeetup({ otherUser: data as User, activity: payload.new.activity });
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'meetups' }, async (payload) => {
+        const m = payload.new as Meetup;
+        const isParticipant = m.sender_id === currentUser.id || m.receiver_id === currentUser.id;
+
+        if (!isParticipant) return;
+
+        if (m.status === 'accepted') {
+          setActiveMeetup(m);
+
+          // If I am the sender, show the confirmed modal (only if not already in flow)
+          if (m.sender_id === currentUser.id) {
+            if (viewStateRef.current === 'meetup-offer') return;
+
+            const { data } = await supabase.from('users').select('*').eq('id', m.receiver_id).single();
+            if (data) {
+              setAcceptedMeetup({
+                otherUser: data as User,
+                activity: m.activity,
+                location: m.location_name,
+                time: m.meetup_time
+              });
+            }
           }
+        } else if (m.status === 'completed' || m.status === 'no_show') {
+          setActiveMeetup(null);
+          setAcceptedMeetup(null); // Clear modal if open
         }
       })
       .subscribe();
@@ -207,6 +294,21 @@ export default function Home() {
     await supabase.from('users').update(updatedUser).eq('id', updatedUser.id);
   };
 
+  const handleLeaveSesh = () => {
+    setActiveSesh(null);
+    setShowActiveSeshModal(false);
+  };
+
+  const handleSeshClick = (sesh: Sesh) => {
+    if (activeSesh && activeSesh.id === sesh.id) {
+      // If clicking the session we are already in, show the Active UI
+      setShowActiveSeshModal(true);
+    } else {
+      // Otherwise show the Join UI
+      setSelectedSesh(sesh);
+    }
+  };
+
   return (
     <main style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
       {/* Map Layer */}
@@ -214,7 +316,7 @@ export default function Home() {
         users={users}
         seshes={seshes}
         onUserClick={handleUserClick}
-        onSeshClick={setSelectedSesh}
+        onSeshClick={handleSeshClick}
         center={mapCenter}
       />
 
@@ -284,11 +386,46 @@ export default function Home() {
 
           <AnimatePresence>
             {showNotifications && (
-              <NotificationList currentUser={currentUser} onClose={() => setShowNotifications(false)} />
+              <NotificationList
+                currentUser={currentUser}
+                onClose={() => setShowNotifications(false)}
+              />
             )}
           </AnimatePresence>
         </>
       )}
+
+      {/* Active Session Indicator Pill */}
+      <AnimatePresence>
+        {activeSesh && !showActiveSeshModal && viewState === 'map' && (
+          <motion.div
+            initial={{ y: -100, x: "-50%", opacity: 0 }}
+            animate={{ y: 0, x: "-50%", opacity: 1 }}
+            exit={{ y: -100, x: "-50%", opacity: 0 }}
+            onClick={() => setShowActiveSeshModal(true)}
+            className="glass-panel"
+            style={{
+              position: 'absolute',
+              top: '20px', // Aligned with top buttons
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 1000,
+              padding: '8px 16px',
+              borderRadius: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              cursor: 'pointer',
+              border: '1px solid rgba(124, 58, 237, 0.5)',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+            }}
+          >
+            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 8px #22c55e' }} />
+            <span style={{ fontSize: '0.9rem', fontWeight: '600' }}>Active: {activeSesh.title}</span>
+            <SparklesIcon style={{ width: '16px', height: '16px', color: 'var(--primary-color)' }} />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Incoming Request Modal */}
       <AnimatePresence>
@@ -352,7 +489,7 @@ export default function Home() {
         )}
       </AnimatePresence>
       {/* Sesh Creation FAB */}
-      {currentUser && !isCreatingSesh && !selectedSesh && !selectedUser && viewState === 'map' && (
+      {currentUser && !isCreatingSesh && !selectedSesh && !selectedUser && viewState === 'map' && !activeSesh && (
         <motion.button
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
@@ -403,7 +540,15 @@ export default function Home() {
             <CreateSeshModal
               currentUser={currentUser}
               onClose={() => setIsCreatingSesh(false)}
-              onCreated={() => setIsCreatingSesh(false)}
+              onCreated={() => {
+                setIsCreatingSesh(false);
+                // Refresh active session immediately after creation
+                const checkNewSesh = async () => {
+                  const { data: createdSesh } = await supabase.from('seshes').select('*').eq('creator_id', currentUser.id).eq('status', 'active').order('created_at', { ascending: false }).limit(1).single();
+                  if (createdSesh) setActiveSesh(createdSesh as Sesh);
+                };
+                checkNewSesh();
+              }}
             />
           </>
         )}
@@ -432,19 +577,122 @@ export default function Home() {
               sesh={selectedSesh}
               currentUser={currentUser}
               onClose={() => setSelectedSesh(null)}
-              onJoined={() => setSelectedSesh(null)} // Refresh will reuse subscription
+              onJoined={() => {
+                setSelectedSesh(null);
+                setActiveSesh(selectedSesh); // Set active immediately on join
+              }}
             />
           </>
         )}
       </AnimatePresence>
+
+      {/* Active Sesh Modal */}
+      <AnimatePresence>
+        {activeSesh && showActiveSeshModal && currentUser && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.6 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowActiveSeshModal(false)}
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'black',
+                zIndex: 1002
+              }}
+            />
+            <ActiveSeshModal
+              sesh={activeSesh}
+              currentUser={currentUser}
+              onClose={() => setShowActiveSeshModal(false)}
+              onLeave={handleLeaveSesh}
+            />
+          </>
+        )}
+      </AnimatePresence>
+
       {/* Accepted/Confirmed Modal (Global) */}
       <AnimatePresence>
         {acceptedMeetup && (
           <MeetupConfirmedModal
             otherUser={acceptedMeetup.otherUser}
             activity={acceptedMeetup.activity}
+            location={acceptedMeetup.location}
+            time={acceptedMeetup.time}
             onClose={() => setAcceptedMeetup(null)}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Active Meetup Controls */}
+      <AnimatePresence>
+        {activeMeetup && currentUser && (
+          <motion.div
+            initial={{ y: 100, x: "-50%", opacity: 0 }}
+            animate={{ y: 0, x: "-50%", opacity: 1 }}
+            exit={{ y: 100, x: "-50%", opacity: 0 }}
+            className="glass-panel"
+            style={{
+              position: 'absolute',
+              bottom: '32px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: '90%',
+              maxWidth: '350px',
+              padding: '20px',
+              zIndex: 900,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+              border: '1px solid var(--secondary-color)',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.4)'
+            }}
+          >
+            <div style={{ textAlign: 'center' }}>
+              <p style={{ fontSize: '0.9rem', color: '#aaa', marginBottom: '4px' }}>Active Meetup</p>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>
+                {activeMeetup.activity === 'study' ? '📚' : '✨'} Meeting {users.find(u => u.id === (activeMeetup.sender_id === currentUser.id ? activeMeetup.receiver_id : activeMeetup.sender_id))?.name || 'Friend'}
+              </h3>
+              {activeMeetup.location_name && (
+                <p style={{ fontSize: '0.9rem', color: 'var(--secondary-color)', marginTop: '4px' }}>
+                  📍 {activeMeetup.location_name}
+                </p>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                onClick={async () => {
+                  await supabase.from('meetups').update({ status: 'no_show' }).eq('id', activeMeetup.id);
+                  setActiveMeetup(null);
+                }}
+                style={{
+                  flex: 1, padding: '12px', borderRadius: '12px',
+                  background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444',
+                  border: '1px solid rgba(239, 68, 68, 0.2)', fontWeight: 600
+                }}
+              >
+                No Show
+              </button>
+              <button
+                onClick={async () => {
+                  await supabase.from('meetups').update({ status: 'completed' }).eq('id', activeMeetup.id);
+                  setActiveMeetup(null);
+                }}
+                style={{
+                  flex: 1, padding: '12px', borderRadius: '12px',
+                  background: 'var(--secondary-color)', color: 'white',
+                  border: 'none', fontWeight: 600
+                }}
+              >
+                Arrived!
+              </button>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
 
