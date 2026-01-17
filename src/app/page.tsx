@@ -294,7 +294,7 @@ export default function Home() {
         )}
       </AnimatePresence>
       {/* Sesh Creation FAB */}
-      {currentUser && !isCreatingSesh && !selectedSesh && viewState === 'map' && (
+      {currentUser && !isCreatingSesh && !selectedSesh && !selectedUser && viewState === 'map' && (
         <motion.button
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
