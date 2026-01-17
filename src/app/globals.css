@@ -123,3 +123,32 @@ textarea {
   border-color: var(--accent-color);
   z-index: 1000 !important;
 }
+
+/* Meetup Modal Responsive Styles */
+.meetup-modal {
+  /* Default Desktop (Centered) */
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 420px;
+  max-height: 90vh;
+  padding: 32px;
+  border-radius: var(--radius-lg);
+}
+
+@media (max-width: 768px) {
+  .meetup-modal {
+    /* Mobile (Bottom Sheet) */
+    top: auto !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    transform: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    padding: 24px;
+    max-height: 85vh;
+  }
+}

@@ -73,3 +73,18 @@ MOCK_USERS[4].name = "Jessica Lee";
 MOCK_USERS[5].name = "Tom Baker";
 MOCK_USERS[6].name = "Rachel Green";
 MOCK_USERS[7].name = "Michael Scott";
+
+export const CURRENT_USER: User = {
+    id: 'current-user',
+    name: 'Atticus Finch',
+    avatarUrl: '/student_profile_1_1768606123923.png',
+    university: 'UQ',
+    degree: 'Law',
+    year: 3,
+    bio: 'Reading law and fighting for justice. Also love a good coffee.',
+    subjects: ['LAWS3001', 'LAWS4002', 'PHIL2000'],
+    interests: ['Reading', 'Justice', 'Coffee'],
+    lat: -27.4975,
+    lng: 153.0137,
+    isOnline: true
+};
