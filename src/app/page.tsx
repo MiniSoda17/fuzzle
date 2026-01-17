@@ -161,6 +161,34 @@ export default function Home() {
     checkActiveMeetup();
   }, [currentUser]);
 
+  // Check for Payment Success Redirect
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('payment_success') === 'true' && users.length > 0) {
+        // Find active meetup and show modal
+        const check = async () => {
+          const { data } = await supabase
+            .from('meetups')
+            .select('*')
+            .or(`sender_id.eq.${currentUser?.id},receiver_id.eq.${currentUser?.id}`)
+            .eq('status', 'accepted')
+            .limit(1)
+            .single();
+
+          if (data && currentUser) {
+            const otherId = data.sender_id === currentUser.id ? data.receiver_id : data.sender_id;
+            const otherUser = users.find(u => u.id === otherId);
+            if (otherUser) {
+              setAcceptedMeetup({ otherUser, activity: data.activity, location: data.location_name, time: data.meetup_time });
+            }
+          }
+        };
+        if (currentUser) check();
+      }
+    }
+  }, [currentUser, users]);
+
 
 
   // 2. Meetup Notifications (Incoming & Outgoing Confirmation)

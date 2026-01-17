@@ -23,6 +23,79 @@ const ACTIVITIES_MAP: Record<string, { emoji: string; label: string }> = {
 
 export default function MeetupConfirmedModal({ otherUser, activity, location, time, onClose }: MeetupConfirmedModalProps) {
     const actInfo = ACTIVITIES_MAP[activity] || { emoji: '✨', label: activity };
+    const [hasAccess, setHasAccess] = React.useState(false);
+    const [loading, setLoading] = React.useState(false);
+
+    React.useEffect(() => {
+        // Check for payment success in URL
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('payment_success') === 'true') {
+                setHasAccess(true);
+            }
+        }
+    }, []);
+
+    const handleSubscribe = async () => {
+        setLoading(true);
+        try {
+            const res = await fetch('/api/create-checkout-session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: 'current_user', email: 'user@example.com' })
+            });
+            const data = await res.json();
+            if (data.url) {
+                window.location.href = data.url;
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Payment failed');
+            setLoading(false);
+        }
+    };
+
+    if (!hasAccess) {
+        return (
+            <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="glass-panel"
+                style={{
+                    position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+                    width: '90%', maxWidth: '400px', padding: '32px', zIndex: 2002, textAlign: 'center',
+                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+                }}
+            >
+                <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'center' }}>
+                    <span style={{ fontSize: '64px' }}>💎</span>
+                </div>
+                <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'white', marginBottom: '8px' }}>Unlock Details</h2>
+                <p style={{ color: '#aaa', marginBottom: '24px' }}>Subscribe to see the meeting point and time.</p>
+
+                <div style={{ background: 'rgba(255,255,255,0.05)', padding: '20px', borderRadius: '16px', marginBottom: '24px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <span style={{ fontWeight: 600 }}>Monthly Plan</span>
+                        <span style={{ fontWeight: 800, fontSize: '1.2rem', color: 'var(--secondary-color)' }}>$7.99</span>
+                    </div>
+                    <p style={{ fontSize: '0.8rem', color: '#888' }}>Cancel anytime.</p>
+                </div>
+
+                <div style={{ display: 'flex', gap: '12px' }}>
+                    <button onClick={onClose} style={{ flex: 1, padding: '12px', background: 'transparent', border: '1px solid #555', borderRadius: '12px', color: '#aaa' }}>Close</button>
+                    <button
+                        onClick={handleSubscribe}
+                        disabled={loading}
+                        className="btn-primary"
+                        style={{ flex: 2, background: 'var(--secondary-color)', opacity: loading ? 0.7 : 1 }}
+                    >
+                        {loading ? 'Redirecting...' : 'Subscribe Now'}
+                    </button>
+                </div>
+            </motion.div>
+        );
+    }
 
     return (
         <motion.div

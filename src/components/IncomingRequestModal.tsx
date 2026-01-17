@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
@@ -30,6 +32,8 @@ export default function IncomingRequestModal({ request, onClose }: IncomingReque
     const [sender, setSender] = useState<User | null>(null);
     const [currentStatus, setCurrentStatus] = useState(request.status || 'pending');
     const [timeLeft, setTimeLeft] = useState<string>('');
+    const [hasAccess, setHasAccess] = useState(false);
+    const [loadingPayment, setLoadingPayment] = useState(false);
 
     useEffect(() => {
         const fetchSender = async () => {
@@ -38,6 +42,15 @@ export default function IncomingRequestModal({ request, onClose }: IncomingReque
         };
         fetchSender();
     }, [request.sender_id]);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('payment_success') === 'true') {
+                setHasAccess(true);
+            }
+        }
+    }, []);
 
     useEffect(() => {
         if (currentStatus === 'pending' && request.created_at) {
@@ -61,6 +74,25 @@ export default function IncomingRequestModal({ request, onClose }: IncomingReque
         }
     }, [currentStatus, request.created_at]);
 
+    const handleSubscribe = async () => {
+        setLoadingPayment(true);
+        try {
+            const res = await fetch('/api/create-checkout-session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: 'current_user', email: 'user@example.com' })
+            });
+            const data = await res.json();
+            if (data.url) {
+                window.location.href = data.url;
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Payment failed');
+            setLoadingPayment(false);
+        }
+    };
+
     const handleResponse = async (status: 'accepted' | 'rejected') => {
         await supabase.from('meetups').update({ status }).eq('id', request.id);
         setCurrentStatus(status);
@@ -73,6 +105,47 @@ export default function IncomingRequestModal({ request, onClose }: IncomingReque
 
     if (currentStatus === 'accepted') {
         const actInfo = ACTIVITIES_MAP[request.activity] || { emoji: '✨', label: request.activity };
+
+        if (!hasAccess) {
+            return (
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    className="glass-panel"
+                    style={{
+                        position: 'absolute', bottom: '24px', left: '50%', transform: 'translateX(-50%)',
+                        width: '90%', maxWidth: '400px', padding: '32px', zIndex: 2000, textAlign: 'center'
+                    }}
+                >
+                    <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'center' }}>
+                        <span style={{ fontSize: '64px' }}>💎</span>
+                    </div>
+                    <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'white', marginBottom: '8px' }}>Unlock Details</h2>
+                    <p style={{ color: '#aaa', marginBottom: '24px' }}>Subscribe to see the meeting point and time.</p>
+
+                    <div style={{ background: 'rgba(255,255,255,0.05)', padding: '20px', borderRadius: '16px', marginBottom: '24px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                            <span style={{ fontWeight: 600 }}>Monthly Plan</span>
+                            <span style={{ fontWeight: 800, fontSize: '1.2rem', color: 'var(--secondary-color)' }}>$7.99</span>
+                        </div>
+                        <p style={{ fontSize: '0.8rem', color: '#888' }}>Cancel anytime.</p>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                        <button onClick={onClose} style={{ flex: 1, padding: '12px', background: 'transparent', border: '1px solid #555', borderRadius: '12px', color: '#aaa' }}>Close</button>
+                        <button
+                            onClick={handleSubscribe}
+                            disabled={loadingPayment}
+                            className="btn-primary"
+                            style={{ flex: 2, background: 'var(--secondary-color)', opacity: loadingPayment ? 0.7 : 1 }}
+                        >
+                            {loadingPayment ? 'Redirecting...' : 'Subscribe Now'}
+                        </button>
+                    </div>
+                </motion.div>
+            );
+        }
 
         return (
             <motion.div
