@@ -345,7 +345,10 @@ export default function Home() {
 
           <AnimatePresence>
             {showNotifications && (
-              <NotificationList currentUser={currentUser} onClose={() => setShowNotifications(false)} />
+              <NotificationList
+                currentUser={currentUser}
+                onClose={() => setShowNotifications(false)}
+              />
             )}
           </AnimatePresence>
         </>
@@ -355,14 +358,14 @@ export default function Home() {
       <AnimatePresence>
         {activeSesh && !showActiveSeshModal && viewState === 'map' && (
           <motion.div
-            initial={{ y: -100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: -100, opacity: 0 }}
+            initial={{ y: -100, x: "-50%", opacity: 0 }}
+            animate={{ y: 0, x: "-50%", opacity: 1 }}
+            exit={{ y: -100, x: "-50%", opacity: 0 }}
             onClick={() => setShowActiveSeshModal(true)}
             className="glass-panel"
             style={{
               position: 'absolute',
-              top: '80px', // Below profile/bell
+              top: '20px', // Aligned with top buttons
               left: '50%',
               transform: 'translateX(-50%)',
               zIndex: 1000,

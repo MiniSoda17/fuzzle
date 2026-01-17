@@ -11,11 +11,11 @@ interface IncomingRequestModalProps {
         id: string;
         sender_id: string;
         activity: string;
+        status?: string;
+        created_at?: string;
     };
     onClose: () => void;
 }
-
-
 
 const ACTIVITIES_MAP: Record<string, { emoji: string; label: string }> = {
     'study': { emoji: '📚', label: 'Study' },
@@ -27,7 +27,8 @@ const ACTIVITIES_MAP: Record<string, { emoji: string; label: string }> = {
 
 export default function IncomingRequestModal({ request, onClose }: IncomingRequestModalProps) {
     const [sender, setSender] = useState<User | null>(null);
-    const [isAccepted, setIsAccepted] = useState(false);
+    const [currentStatus, setCurrentStatus] = useState(request.status || 'pending');
+    const [timeLeft, setTimeLeft] = useState<string>('');
 
     useEffect(() => {
         const fetchSender = async () => {
@@ -37,18 +38,39 @@ export default function IncomingRequestModal({ request, onClose }: IncomingReque
         fetchSender();
     }, [request.sender_id]);
 
+    useEffect(() => {
+        if (currentStatus === 'pending' && request.created_at) {
+            const calculateTimeLeft = () => {
+                const created = new Date(request.created_at!).getTime();
+                const now = new Date().getTime();
+                const expiresAt = created + (15 * 60 * 1000); // 15 mins expiry
+                const diff = Math.floor((expiresAt - now) / 1000);
+
+                if (diff <= 0) {
+                    setTimeLeft('Expired');
+                } else {
+                    const mins = Math.floor(diff / 60);
+                    const secs = diff % 60;
+                    setTimeLeft(`${mins}:${secs.toString().padStart(2, '0')}`);
+                }
+            };
+            calculateTimeLeft();
+            const interval = setInterval(calculateTimeLeft, 1000);
+            return () => clearInterval(interval);
+        }
+    }, [currentStatus, request.created_at]);
+
     const handleResponse = async (status: 'accepted' | 'rejected') => {
         await supabase.from('meetups').update({ status }).eq('id', request.id);
-        if (status === 'accepted') {
-            setIsAccepted(true);
-        } else {
-            onClose();
+        setCurrentStatus(status);
+        if (status === 'rejected') {
+            setTimeout(onClose, 2000); // Close after 2s if rejected
         }
     };
 
     if (!sender) return null;
 
-    if (isAccepted) {
+    if (currentStatus === 'accepted') {
         const actInfo = ACTIVITIES_MAP[request.activity] || { emoji: '✨', label: request.activity };
 
         return (
@@ -102,8 +124,25 @@ export default function IncomingRequestModal({ request, onClose }: IncomingReque
                     style={{ width: '100%', background: 'var(--secondary-color)' }}
                     onClick={onClose}
                 >
-                    Lets Go!
+                    Close
                 </button>
+            </motion.div>
+        );
+    }
+
+    if (currentStatus === 'rejected') {
+        return (
+            <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="glass-panel"
+                style={{
+                    position: 'absolute', bottom: '24px', left: '50%', transform: 'translateX(-50%)',
+                    width: '90%', maxWidth: '400px', padding: '32px', zIndex: 2000, textAlign: 'center'
+                }}
+            >
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#ef4444', marginBottom: '8px' }}>Request Declined</h2>
+                <p>Closing...</p>
             </motion.div>
         );
     }
@@ -137,6 +176,12 @@ export default function IncomingRequestModal({ request, onClose }: IncomingReque
             <h3 style={{ fontSize: '1.2rem', marginBottom: '8px' }}>
                 {sender.name} wants to <span style={{ color: 'var(--primary-color)' }}>{request.activity}</span>!
             </h3>
+
+            {timeLeft && (
+                <p style={{ color: '#fbbf24', fontWeight: 'bold', marginBottom: '20px' }}>
+                    ⏰ Expires in {timeLeft}
+                </p>
+            )}
 
             <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
                 <button

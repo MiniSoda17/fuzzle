@@ -196,7 +196,7 @@ const ActiveSeshModal: React.FC<ActiveSeshModalProps> = ({ sesh, currentUser, on
                     <p style={{ fontSize: '0.8rem', color: '#8b949e', marginBottom: '8px', textAlign: 'left', paddingLeft: '4px' }}>
                         Who's here ({participants.length})
                     </p>
-                    <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-start', paddingLeft: '4px' }}>
+                    <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', paddingLeft: '4px' }}>
                         {participants.map(p => (
                             <div key={p.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '50px' }}>
                                 <img
