@@ -125,16 +125,23 @@ textarea {
 }
 
 /* Meetup Modal Responsive Styles */
+/* Meetup Modal Responsive Styles */
 .meetup-modal {
-  /* Default Desktop (Centered) */
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  /* Default Desktop (Centered using margin: auto) */
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: auto;
+  height: fit-content;
   width: 90%;
   max-width: 420px;
+  min-height: min-content;
   max-height: 90vh;
   padding: 32px;
   border-radius: var(--radius-lg);
+  z-index: 1001;
 }
 
 @media (max-width: 768px) {
@@ -142,8 +149,12 @@ textarea {
     /* Mobile (Bottom Sheet) */
     top: auto !important;
     left: 0 !important;
+    right: 0 !important;
     bottom: 0 !important;
+    margin: 0 !important;
     transform: none !important;
+    /* Note: Framer motion might still apply transform, but we generally want to allow it for entrance anims.
+       However, we need to ensure it's anchored to bottom. */
     width: 100% !important;
     max-width: 100% !important;
     border-bottom-left-radius: 0;
