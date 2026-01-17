@@ -150,7 +150,7 @@ export default function SignupPage() {
     const requestLocation = async () => {
         if (!userId) {
             router.refresh();
-            router.replace('/');
+            router.replace('/map');
             return;
         }
 
@@ -176,7 +176,7 @@ export default function SignupPage() {
                 // Redirect after brief delay to show success
                 setTimeout(() => {
                     router.refresh();
-                    router.replace('/');
+                    router.replace('/map');
                 }, 1000);
             },
             (error) => {
@@ -193,7 +193,7 @@ export default function SignupPage() {
 
     const skipLocation = () => {
         router.refresh();
-        router.replace('/');
+        router.replace('/map');
     };
 
     // Step Variants

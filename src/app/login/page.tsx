@@ -30,7 +30,7 @@ export default function LoginPage() {
 
             // Refresh router to sync server state (middleware) then navigate
             router.refresh();
-            router.replace('/');
+            router.replace('/map');
 
         } catch (error: any) {
             alert(error.message);
