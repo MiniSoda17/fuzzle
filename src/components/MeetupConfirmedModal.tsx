@@ -10,6 +10,7 @@ interface MeetupConfirmedModalProps {
     activity: string;
     location?: string;
     time?: string;
+    isPremium?: boolean;
     onClose: () => void;
 }
 
@@ -21,20 +22,22 @@ const ACTIVITIES_MAP: Record<string, { emoji: string; label: string }> = {
     'walk': { emoji: '🚶', label: 'Walk' },
 };
 
-export default function MeetupConfirmedModal({ otherUser, activity, location, time, onClose }: MeetupConfirmedModalProps) {
+export default function MeetupConfirmedModal({ otherUser, activity, location, time, isPremium, onClose }: MeetupConfirmedModalProps) {
     const actInfo = ACTIVITIES_MAP[activity] || { emoji: '✨', label: activity };
     const [hasAccess, setHasAccess] = React.useState(false);
     const [loading, setLoading] = React.useState(false);
 
     React.useEffect(() => {
-        // Check for payment success in URL
-        if (typeof window !== 'undefined') {
+        // Check props or URL for access
+        if (isPremium) {
+            setHasAccess(true);
+        } else if (typeof window !== 'undefined') {
             const params = new URLSearchParams(window.location.search);
             if (params.get('payment_success') === 'true') {
                 setHasAccess(true);
             }
         }
-    }, []);
+    }, [isPremium]);
 
     const handleSubscribe = async () => {
         setLoading(true);

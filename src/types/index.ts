@@ -13,6 +13,7 @@ export interface User {
     lat: number;
     lng: number;
     is_online: boolean;
+    is_premium?: boolean;
 }
 
 export type SeshActivityType = 'sports' | 'study' | 'coffee' | 'food' | 'party' | 'other';

@@ -17,6 +17,7 @@ interface IncomingRequestModalProps {
         location_name?: string;
         message?: string;
     };
+    currentUser?: User; // Pass current user to check premium
     onClose: () => void;
 }
 
@@ -28,7 +29,7 @@ const ACTIVITIES_MAP: Record<string, { emoji: string; label: string }> = {
     'walk': { emoji: '🚶', label: 'Walk' },
 };
 
-export default function IncomingRequestModal({ request, onClose }: IncomingRequestModalProps) {
+export default function IncomingRequestModal({ request, currentUser, onClose }: IncomingRequestModalProps) {
     const [sender, setSender] = useState<User | null>(null);
     const [currentStatus, setCurrentStatus] = useState(request.status || 'pending');
     const [timeLeft, setTimeLeft] = useState<string>('');
@@ -44,13 +45,15 @@ export default function IncomingRequestModal({ request, onClose }: IncomingReque
     }, [request.sender_id]);
 
     useEffect(() => {
-        if (typeof window !== 'undefined') {
+        if (currentUser?.is_premium) {
+            setHasAccess(true);
+        } else if (typeof window !== 'undefined') {
             const params = new URLSearchParams(window.location.search);
             if (params.get('payment_success') === 'true') {
                 setHasAccess(true);
             }
         }
-    }, []);
+    }, [currentUser]);
 
     useEffect(() => {
         if (currentStatus === 'pending' && request.created_at) {

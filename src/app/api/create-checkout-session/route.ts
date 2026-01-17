@@ -31,7 +31,7 @@ export async function POST(req: Request) {
                 },
             ],
             mode: 'subscription',
-            success_url: `${req.headers.get('origin')}/?payment_success=true`,
+            success_url: `${req.headers.get('origin')}/?payment_success=true&session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${req.headers.get('origin')}/?payment_cancelled=true`,
             metadata: {
                 userId,
