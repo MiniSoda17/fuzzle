@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
-import type { User } from '../types';
-import { UserIcon, ClockIcon, MapPinIcon, ChatBubbleBottomCenterTextIcon } from '@heroicons/react/24/outline';
-import { CheckCircleIcon, XCircleIcon, ChevronDownIcon } from '@heroicons/react/24/solid';
+import type { User, Sesh } from '../types';
+import { UserIcon, ClockIcon, MapPinIcon, ChatBubbleBottomCenterTextIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
+import { CheckCircleIcon, XCircleIcon, ChevronDownIcon, FireIcon } from '@heroicons/react/24/solid';
 
 interface NotificationListProps {
     currentUser: User;
@@ -24,6 +24,77 @@ interface MeetupRecord {
     location_name?: string;
     message?: string;
 }
+
+const SeshItem = ({
+    sesh,
+    onLeave
+}: {
+    sesh: Sesh,
+    onLeave: (id: string) => void
+}) => {
+    const getActivityEmoji = (activity: string) => {
+        switch (activity) {
+            case 'sports': return '🏀';
+            case 'study': return '📚';
+            case 'coffee': return '☕';
+            case 'food': return '🍕';
+            case 'party': return '🎉';
+            default: return '📍';
+        }
+    };
+
+    return (
+        <div style={{
+            background: 'rgba(255,255,255,0.05)',
+            borderRadius: '16px',
+            border: '1px solid var(--border-color)',
+            padding: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px'
+        }}>
+            <div style={{
+                width: '40px', height: '40px', borderRadius: '50%',
+                background: 'rgba(255,255,255,0.1)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '1.5rem',
+                flexShrink: 0
+            }}>
+                {getActivityEmoji(sesh.activity_type)}
+            </div>
+
+            <div style={{ flex: 1, overflow: 'hidden' }}>
+                <div style={{ fontWeight: 600, fontSize: '0.95rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {sesh.title}
+                </div>
+                <div style={{ fontSize: '0.8rem', color: '#8b949e', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <FireIcon width={12} color="var(--accent-color)" />
+                    {sesh.current_count}/{sesh.max_participants} joined
+                </div>
+            </div>
+
+            <button
+                onClick={() => onLeave(sesh.id)}
+                style={{
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    color: '#ef4444',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                }}
+            >
+                <ArrowRightOnRectangleIcon width={14} />
+                Leave
+            </button>
+        </div>
+    );
+};
 
 const NotificationItem = ({
     item,
@@ -225,20 +296,22 @@ const NotificationItem = ({
 
 export default function NotificationList({ currentUser, onClose }: NotificationListProps) {
     const [meetups, setMeetups] = useState<MeetupRecord[]>([]);
+    const [joinedSeshes, setJoinedSeshes] = useState<Sesh[]>([]);
     const [expandedId, setExpandedId] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchHistory = async () => {
-            const { data, error } = await supabase
+            // 1. Fetch Meetups
+            const { data: meetupData } = await supabase
                 .from('meetups')
                 .select('*')
                 .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`)
                 .order('created_at', { ascending: false })
                 .limit(20);
 
-            if (data) {
+            if (meetupData) {
                 const userIds = new Set<string>();
-                data.forEach(m => {
+                meetupData.forEach(m => {
                     userIds.add(m.sender_id);
                     userIds.add(m.receiver_id);
                 });
@@ -247,7 +320,7 @@ export default function NotificationList({ currentUser, onClose }: NotificationL
                 const { data: users } = await supabase.from('users').select('id, name, avatar_url').in('id', Array.from(userIds));
                 const userMap = new Map(users?.map(u => [u.id, u]) || []);
 
-                const enriched = data.map(m => {
+                const enriched = meetupData.map(m => {
                     const isSender = m.sender_id === currentUser.id;
                     const otherId = isSender ? m.receiver_id : m.sender_id;
                     const otherUser = userMap.get(otherId);
@@ -258,6 +331,24 @@ export default function NotificationList({ currentUser, onClose }: NotificationL
                     };
                 });
                 setMeetups(enriched as MeetupRecord[]);
+            }
+
+            // 2. Fetch Joined Seshes
+            const { data: seshParticipants } = await supabase
+                .from('sesh_participants')
+                .select(`
+                    sesh_id,
+                    seshes:seshes (*)
+                `)
+                .eq('user_id', currentUser.id);
+
+            if (seshParticipants) {
+                // Determine active seshes (filter out cancelled or expired if needed, but for now just show all active ones the user is in)
+                const activeSeshes = seshParticipants
+                    .map((p: any) => p.seshes as Sesh)
+                    .filter(s => s && s.status === 'active');
+
+                setJoinedSeshes(activeSeshes);
             }
         };
 
@@ -270,6 +361,25 @@ export default function NotificationList({ currentUser, onClose }: NotificationL
 
         // DB Update
         await supabase.from('meetups').update({ status }).eq('id', id);
+    };
+
+    const handleLeaveSesh = async (seshId: string) => {
+        if (!confirm('Are you sure you want to leave this sesh?')) return;
+
+        // Optimistic update
+        setJoinedSeshes(prev => prev.filter(s => s.id !== seshId));
+
+        // DB Update
+        try {
+            await supabase
+                .from('sesh_participants')
+                .delete()
+                .match({ sesh_id: seshId, user_id: currentUser.id });
+
+            // Note: Triggers hopefully handle the count decrement, or realtime will update the map.
+        } catch (error) {
+            console.error('Error leaving sesh:', error);
+        }
     };
 
     return (
@@ -289,7 +399,9 @@ export default function NotificationList({ currentUser, onClose }: NotificationL
                 padding: '24px',
                 borderRadius: '20px 0 0 20px',
                 borderLeft: '1px solid var(--border-color)',
-                overflowY: 'auto'
+                overflowY: 'auto',
+                background: 'rgba(22, 27, 34, 0.95)',
+                backdropFilter: 'blur(20px)'
             }}
         >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
@@ -297,19 +409,39 @@ export default function NotificationList({ currentUser, onClose }: NotificationL
                 <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#aaa', fontSize: '1.5rem', cursor: 'pointer' }}>&times;</button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {meetups.length === 0 && <p style={{ color: '#aaa', textAlign: 'center' }}>No history yet.</p>}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
-                {meetups.map(m => (
-                    <NotificationItem
-                        key={m.id}
-                        item={m}
-                        currentUser={currentUser}
-                        isExpanded={expandedId === m.id}
-                        onToggle={() => setExpandedId(expandedId === m.id ? null : m.id)}
-                        onUpdateStatus={handleUpdateStatus}
-                    />
-                ))}
+                {/* 1. Active Parties / Seshes Section */}
+                {joinedSeshes.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <h3 style={{ fontSize: '0.9rem', color: '#8b949e', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600 }}>Active Parties</h3>
+                        {joinedSeshes.map(sesh => (
+                            <SeshItem key={sesh.id} sesh={sesh} onLeave={handleLeaveSesh} />
+                        ))}
+                    </div>
+                )}
+
+                {/* 2. Meetups Section */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {(meetups.length > 0 || joinedSeshes.length > 0) && (
+                        <h3 style={{ fontSize: '0.9rem', color: '#8b949e', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600 }}>Meetups & History</h3>
+                    )}
+
+                    {meetups.length === 0 && joinedSeshes.length === 0 && (
+                        <p style={{ color: '#aaa', textAlign: 'center', padding: '20px' }}>No notifications yet.</p>
+                    )}
+
+                    {meetups.map(m => (
+                        <NotificationItem
+                            key={m.id}
+                            item={m}
+                            currentUser={currentUser}
+                            isExpanded={expandedId === m.id}
+                            onToggle={() => setExpandedId(expandedId === m.id ? null : m.id)}
+                            onUpdateStatus={handleUpdateStatus}
+                        />
+                    ))}
+                </div>
             </div>
         </motion.div>
     );
