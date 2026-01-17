@@ -2,26 +2,39 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabase';
 import AuthLayout from '@/components/AuthLayout';
 import Input from '@/components/ui/Input';
 
 export default function LoginPage() {
     const [loading, setLoading] = useState(false);
 
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setLoading(true);
 
         const formData = new FormData(e.currentTarget);
-        const data = Object.fromEntries(formData.entries());
+        const email = formData.get('email') as string;
+        const password = formData.get('password') as string;
 
-        console.log('Login Attempt:', data);
+        try {
 
-        // Simulate API call
-        setTimeout(() => {
+
+            const { error } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+            });
+
+            if (error) throw error;
+
+            // Redirect to map
+            window.location.href = '/';
+
+        } catch (error: any) {
+            alert(error.message);
+        } finally {
             setLoading(false);
-            alert('Login data logged to console! Backend integration ready.');
-        }, 1000);
+        }
     };
 
     return (

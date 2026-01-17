@@ -2,26 +2,47 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabase';
 import AuthLayout from '@/components/AuthLayout';
 import Input from '@/components/ui/Input';
+
 
 export default function SignupPage() {
     const [loading, setLoading] = useState(false);
 
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setLoading(true);
 
         const formData = new FormData(e.currentTarget);
-        const data = Object.fromEntries(formData.entries());
+        const name = formData.get('name') as string;
+        const email = formData.get('email') as string;
+        const password = formData.get('password') as string;
+        const university = formData.get('university') as string;
 
-        console.log('Sign Up Attempt:', data);
+        try {
+            // Sign Up - the database trigger will auto-create the profile
+            const { error: authError } = await supabase.auth.signUp({
+                email,
+                password,
+                options: {
+                    data: {
+                        name: name,
+                        university: university,
+                    }
+                }
+            });
 
-        // Simulate API call
-        setTimeout(() => {
+            if (authError) throw authError;
+
+            // Redirect to home (user is logged in automatically)
+            window.location.href = '/';
+
+        } catch (error: any) {
+            alert(error.message);
+        } finally {
             setLoading(false);
-            alert('Sign up data logged to console! Backend integration ready.');
-        }, 1000);
+        }
     };
 
     return (
@@ -62,8 +83,9 @@ export default function SignupPage() {
                             outline: 'none',
                         }}
                         required
+                        defaultValue=""
                     >
-                        <option value="" disabled selected>Select your campus</option>
+                        <option value="" disabled>Select your campus</option>
                         <option value="UQ">University of Queensland (UQ)</option>
                         <option value="QUT">Queensland University of Technology (QUT)</option>
                         <option value="Griffith">Griffith University</option>

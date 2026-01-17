@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import type { User } from '../types';
-import { MOCK_USERS, CURRENT_USER } from '../types';
+import { supabase } from '@/lib/supabase';
 import { AnimatePresence, motion } from 'framer-motion';
 import MeetupFlow from '@/components/MeetupFlow';
 import ProfileSidebar from '@/components/ProfileSidebar';
@@ -17,10 +17,85 @@ const MapComponent = dynamic(() => import('@/components/MapComponent'), {
 });
 
 export default function Home() {
+  const [users, setUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [currentUser, setCurrentUser] = useState<User>(CURRENT_USER);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [viewState, setViewState] = useState<'map' | 'meetup-offer' | 'timer' | 'confirmed'>('map');
+
+  // 1. Initial Data Fetch & Realtime Subscription
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const { data } = await supabase.from('users').select('*');
+      if (data) setUsers(data as User[]);
+    };
+
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        // Fetch full profile
+        const { data } = await supabase.from('users').select('*').eq('id', session.user.id).single();
+        if (data) setCurrentUser(data as User);
+      }
+    };
+
+    fetchUsers();
+    getSession();
+
+    // Subscribe to User Changes (Location Updates)
+    const userSubscription = supabase
+      .channel('public:users')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          setUsers(prev => [...prev, payload.new as User]);
+        } else if (payload.eventType === 'UPDATE') {
+          setUsers(prev => prev.map(u => u.id === payload.new.id ? payload.new as User : u));
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(userSubscription);
+    };
+  }, []);
+
+  // 2. Meetup Notifications
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const meetupSubscription = supabase
+      .channel('public:meetups')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'meetups', filter: `receiver_id=eq.${currentUser.id}` }, (payload) => {
+        alert(`New Meetup Request from ${payload.new.sender_id}! (Integration: Display Modal Here)`);
+        // In real app: setViewState('meetup-received') or similar
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(meetupSubscription);
+    };
+  }, [currentUser]);
+
+  // 3. Mock Realtime Geolocation movement
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const interval = setInterval(async () => {
+      // Random small movement
+      const newLat = currentUser.lat + (Math.random() * 0.0002 - 0.0001);
+      const newLng = currentUser.lng + (Math.random() * 0.0002 - 0.0001);
+
+      // Update Local State (optimistic)
+      setCurrentUser(prev => prev ? ({ ...prev, lat: newLat, lng: newLng }) : null);
+
+      // Push to DB
+      await supabase.from('users').update({ lat: newLat, lng: newLng }).eq('id', currentUser.id);
+
+    }, 5000); // Every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [currentUser]);
+
 
   const handleUserClick = (user: User) => {
     // If editing profile, close it first
@@ -40,53 +115,55 @@ export default function Home() {
     setViewState('meetup-offer');
   };
 
-  const handleSaveProfile = (updatedUser: User) => {
+  const handleSaveProfile = async (updatedUser: User) => {
     console.log('Saving profile:', updatedUser);
     setCurrentUser(updatedUser);
-    // In real app, API call here
+    await supabase.from('users').update(updatedUser).eq('id', updatedUser.id);
   };
 
   return (
     <main style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
       {/* Map Layer */}
-      <MapComponent users={MOCK_USERS} onUserClick={handleUserClick} />
+      <MapComponent users={users} onUserClick={handleUserClick} />
 
       {/* Profile Button (Top Left) */}
-      <motion.button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={() => {
-          setSelectedUser(null);
-          setIsEditingProfile(true);
-        }}
-        className="glass-panel"
-        style={{
-          position: 'absolute',
-          top: '16px',
-          left: '16px',
-          width: '48px',
-          height: '48px',
-          borderRadius: '50%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          padding: 0,
-          overflow: 'hidden',
-          border: '2px solid var(--primary-color)',
-          cursor: 'pointer'
-        }}
-      >
-        <img
-          src={currentUser.avatarUrl}
-          alt="Profile"
-          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-        />
-      </motion.button>
+      {currentUser && (
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => {
+            setSelectedUser(null);
+            setIsEditingProfile(true);
+          }}
+          className="glass-panel"
+          style={{
+            position: 'absolute',
+            top: '16px',
+            left: '16px',
+            width: '48px',
+            height: '48px',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: 0,
+            overflow: 'hidden',
+            border: '2px solid var(--primary-color)',
+            cursor: 'pointer'
+          }}
+        >
+          <img
+            src={currentUser.avatarUrl}
+            alt="Profile"
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          />
+        </motion.button>
+      )}
 
       {/* Edit Profile Sidebar */}
       <AnimatePresence>
-        {isEditingProfile && (
+        {isEditingProfile && currentUser && (
           <EditProfileSidebar
             user={currentUser}
             onClose={() => setIsEditingProfile(false)}
