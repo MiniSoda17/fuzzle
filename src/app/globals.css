@@ -188,8 +188,9 @@ textarea {
   background: var(--primary-color);
   opacity: 0.5;
   border-radius: 50%;
-  animation: pulse-glow 2s infinite;
+  animation: pulse-glow 2s infinite ease-out;
   z-index: 1;
+  will-change: transform, opacity;
 }
 
 .sesh-content {
@@ -221,14 +222,12 @@ textarea {
 
 @keyframes pulse-glow {
   0% {
-    width: 60%;
-    height: 60%;
-    opacity: 0.8;
+    transform: translate(-50%, -50%) scale(0.8);
+    opacity: 0.6;
   }
 
   100% {
-    width: 120%;
-    height: 120%;
+    transform: translate(-50%, -50%) scale(1.5);
     opacity: 0;
   }
 }
