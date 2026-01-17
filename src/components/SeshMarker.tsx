@@ -20,8 +20,20 @@ const getActivityEmoji = (activity: string) => {
     }
 };
 
+const getActivityClass = (activity: string) => {
+    switch (activity) {
+        case 'sports': return 'sesh-anim-bounce'; // Bouncing basketball
+        case 'party': return 'sesh-anim-shake';   // Shaking party popper
+        case 'study': return 'sesh-anim-float';   // Floating books
+        case 'coffee': return 'sesh-anim-float';  // Floating coffee
+        case 'other': return 'sesh-anim-spin';    // Spinning sparkles
+        default: return '';
+    }
+};
+
 const SeshMarker: React.FC<SeshMarkerProps> = ({ sesh, onClick }) => {
     const emoji = getActivityEmoji(sesh.activity_type);
+    const animClass = getActivityClass(sesh.activity_type);
 
     const customIcon = L.divIcon({
         className: 'sesh-marker-container',
@@ -29,7 +41,7 @@ const SeshMarker: React.FC<SeshMarkerProps> = ({ sesh, onClick }) => {
             <div class="sesh-marker">
                 <div class="sesh-glow"></div>
                 <div class="sesh-content">
-                    <span class="sesh-emoji">${emoji}</span>
+                    <span class="sesh-emoji ${animClass}">${emoji}</span>
                     <span class="sesh-count">${sesh.current_count}/${sesh.max_participants}</span>
                 </div>
             </div>

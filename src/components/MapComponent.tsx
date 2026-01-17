@@ -4,6 +4,10 @@ import 'leaflet/dist/leaflet.css';
 import type { User, Sesh } from '../types';
 import L from 'leaflet';
 import SeshMarker from './SeshMarker';
+import MarkerClusterGroup from 'react-leaflet-cluster';
+
+import 'leaflet.markercluster/dist/MarkerCluster.css';
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 
 // Fix for default Leaflet icons in Next.js/Webpack
 // We can try to rely on CSS custom markers mostly, but good to have fallback
@@ -44,7 +48,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ users, seshes = [], onUserC
                 url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
             />
 
-            {/* Sesh Markers */}
+            {/* Sesh Markers - Keep them outside cluster or inside? Usually outside to stand out */}
             {seshes.map((sesh) => (
                 <SeshMarker
                     key={sesh.id}
@@ -53,26 +57,34 @@ const MapComponent: React.FC<MapComponentProps> = ({ users, seshes = [], onUserC
                 />
             ))}
 
-            {users.map((user) => {
-                // Create custom icon for each user
-                const customIcon = L.divIcon({
-                    className: 'custom-marker',
-                    html: `<div class="marker-content"><img src="${user.avatar_url}" alt="${user.name}" /></div>`,
-                    iconSize: [48, 48],
-                    iconAnchor: [24, 24]
-                });
+            <MarkerClusterGroup
+                chunkedLoading
+                spiderfyOnMaxZoom={true}
+                showCoverageOnHover={false}
+                zoomToBoundsOnClick={true}
+                maxClusterRadius={40} // Smaller radius handles overlaps better when close
+            >
+                {users.map((user) => {
+                    // Create custom icon for each user
+                    const customIcon = L.divIcon({
+                        className: 'custom-marker',
+                        html: `<div class="marker-content"><img src="${user.avatar_url}" alt="${user.name}" /></div>`,
+                        iconSize: [48, 48],
+                        iconAnchor: [24, 24]
+                    });
 
-                return (
-                    <Marker
-                        key={user.id}
-                        position={[user.lat, user.lng]}
-                        icon={customIcon}
-                        eventHandlers={{
-                            click: () => onUserClick(user),
-                        }}
-                    />
-                );
-            })}
+                    return (
+                        <Marker
+                            key={user.id}
+                            position={[user.lat, user.lng]}
+                            icon={customIcon}
+                            eventHandlers={{
+                                click: () => onUserClick(user),
+                            }}
+                        />
+                    );
+                })}
+            </MarkerClusterGroup>
         </MapContainer>
     );
 };

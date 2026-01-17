@@ -237,3 +237,74 @@ textarea {
 .fab-button:active {
   transform: scale(0.9);
 }
+
+/* Sesh Activity Animations */
+@keyframes bounce {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.sesh-anim-bounce {
+  animation: bounce 0.8s infinite ease-in-out;
+  display: inline-block;
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.sesh-anim-float {
+  animation: float 2s infinite ease-in-out;
+  display: inline-block;
+}
+
+@keyframes shake {
+
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+
+  25% {
+    transform: rotate(-10deg);
+  }
+
+  75% {
+    transform: rotate(10deg);
+  }
+}
+
+.sesh-anim-shake {
+  animation: shake 1s infinite linear;
+  display: inline-block;
+}
+
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.sesh-anim-spin {
+  animation: spin-slow 8s linear infinite;
+  display: inline-block;
+}
