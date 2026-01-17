@@ -85,6 +85,7 @@ export default function Home() {
 
     // A. Get Real Location ONCE on mount/load
     if (navigator.geolocation) {
+      console.log('Requesting geolocation...');
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const { latitude, longitude } = position.coords;
@@ -95,7 +96,13 @@ export default function Home() {
           await supabase.from('users').update({ lat: latitude, lng: longitude }).eq('id', currentUser.id);
         },
         (error) => {
-          console.error('Error getting location:', error);
+          console.error('Error getting location:', error.message);
+          alert('Please enable location access to use Fuzzle!');
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
         }
       );
     }
@@ -179,11 +186,15 @@ export default function Home() {
             cursor: 'pointer'
           }}
         >
-          <img
-            src={currentUser.avatarUrl}
-            alt="Profile"
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          />
+          {currentUser.avatarUrl ? (
+            <img
+              src={currentUser.avatarUrl}
+              alt="Profile"
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+          ) : (
+            <UserIcon style={{ width: '28px', height: '28px', color: 'var(--primary-color)' }} />
+          )}
         </motion.button>
       )}
 
