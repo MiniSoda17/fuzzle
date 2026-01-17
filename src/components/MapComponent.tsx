@@ -1,7 +1,5 @@
-'use client';
-
-import React from 'react';
-import { MapContainer, TileLayer, Marker } from 'react-leaflet';
+import React, { useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { User } from '../types';
 import L from 'leaflet';
@@ -14,16 +12,29 @@ import L from 'leaflet';
 interface MapComponentProps {
     users: User[];
     onUserClick: (user: User) => void;
+    center?: [number, number];
 }
 
-const MapComponent: React.FC<MapComponentProps> = ({ users, onUserClick }) => {
+const MapController = ({ center }: { center?: [number, number] }) => {
+    const map = useMap();
+    useEffect(() => {
+        if (center) {
+            map.flyTo(center, 15);
+        }
+    }, [center, map]);
+    return null;
+};
+
+const MapComponent: React.FC<MapComponentProps> = ({ users, onUserClick, center }) => {
     return (
         <MapContainer
-            center={[-27.4975, 153.0137]} // Centered on Brisbane (UQ)
+            center={[-27.4975, 153.0137]} // Default start (Brisbane)
             zoom={13}
             scrollWheelZoom={true}
             style={{ width: '100%', height: '100%' }}
         >
+            <MapController center={center} />
+
             {/* Light Theme Tiles - CartoDB Positron */}
             <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'

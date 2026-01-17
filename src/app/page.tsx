@@ -76,25 +76,48 @@ export default function Home() {
     };
   }, [currentUser]);
 
-  // 3. Mock Realtime Geolocation movement
+  // 3. Real Geolocation & Mock Jitter
   useEffect(() => {
     if (!currentUser) return;
 
+    // A. Get Real Location ONCE on mount/load
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          console.log('Got Real Location:', latitude, longitude);
+
+          // Update Local & DB
+          setCurrentUser(prev => prev ? ({ ...prev, lat: latitude, lng: longitude }) : null);
+          await supabase.from('users').update({ lat: latitude, lng: longitude }).eq('id', currentUser.id);
+        },
+        (error) => {
+          console.error('Error getting location:', error);
+        }
+      );
+    }
+
+    // B. Keep the Mock Jitter (for "aliveness") but base it on the current/updated location
     const interval = setInterval(async () => {
-      // Random small movement
-      const newLat = currentUser.lat + (Math.random() * 0.0002 - 0.0001);
-      const newLng = currentUser.lng + (Math.random() * 0.0002 - 0.0001);
+      setCurrentUser(prev => {
+        if (!prev) return null;
+        // Jitter around CURRENT location
+        const newLat = prev.lat + (Math.random() * 0.0001 - 0.00005);
+        const newLng = prev.lng + (Math.random() * 0.0001 - 0.00005);
 
-      // Update Local State (optimistic)
-      setCurrentUser(prev => prev ? ({ ...prev, lat: newLat, lng: newLng }) : null);
+        // Sync to DB (debounced or just every 5s is fine for MVP)
+        supabase.from('users').update({ lat: newLat, lng: newLng }).eq('id', prev.id).then();
 
-      // Push to DB
-      await supabase.from('users').update({ lat: newLat, lng: newLng }).eq('id', currentUser.id);
+        return { ...prev, lat: newLat, lng: newLng };
+      });
 
-    }, 5000); // Every 5 seconds
+    }, 5000);
 
     return () => clearInterval(interval);
-  }, [currentUser]);
+  }, [currentUser?.id]); // Only re-run if user ID changes (initially)
+
+  // Memoize center to prevent map jumps
+  const mapCenter: [number, number] | undefined = currentUser ? [currentUser.lat, currentUser.lng] : undefined;
 
 
   const handleUserClick = (user: User) => {
@@ -124,7 +147,7 @@ export default function Home() {
   return (
     <main style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
       {/* Map Layer */}
-      <MapComponent users={users} onUserClick={handleUserClick} />
+      <MapComponent users={users} onUserClick={handleUserClick} center={mapCenter} />
 
       {/* Profile Button (Top Left) */}
       {currentUser && (
