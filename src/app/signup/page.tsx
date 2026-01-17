@@ -76,7 +76,7 @@ export default function SignupPage() {
     const handleCreateAccount = async () => {
         setLoading(true);
         try {
-            let avatarUrl = '/default-avatar.svg'; // Default Smiley Face
+            let avatarUrl = '/default-avatar.png'; // Nano Banana Smiley
 
             // If file selected, we need to upload. 
             // BUT, strictly speaking, we can't upload to a user's folder until they exist (RLS might block if using 'authenticated' policy and user isn't auth'd yet).

@@ -403,7 +403,7 @@ export default function Home() {
           >
             {currentUser.avatar_url ? (
               <img
-                src={currentUser.avatar_url}
+                src={currentUser.avatar_url || '/default-avatar.png'}
                 alt="Profile"
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
