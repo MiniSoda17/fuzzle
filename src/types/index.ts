@@ -15,6 +15,29 @@ export interface User {
     isOnline: boolean;
 }
 
+export type SeshActivityType = 'sports' | 'study' | 'coffee' | 'food' | 'party' | 'other';
+
+export interface Sesh {
+    id: string;
+    creator_id: string;
+    activity_type: SeshActivityType;
+    title: string;
+    lat: number;
+    lng: number;
+    max_participants: number;
+    current_count: number;
+    status: 'active' | 'full' | 'cancelled';
+    created_at: string;
+    expires_at: string;
+}
+
+export interface SeshParticipant {
+    id: string;
+    sesh_id: string;
+    user_id: string;
+    joined_at: string;
+}
+
 export const UNIVERSITIES = {
     UQ: { lat: -27.4975, lng: 153.0137 },
     QUT: { lat: -27.4772, lng: 153.0285 },

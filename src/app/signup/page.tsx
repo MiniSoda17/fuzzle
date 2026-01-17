@@ -12,6 +12,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 export default function SignupPage() {
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
+    const [locationStatus, setLocationStatus] = useState<'idle' | 'requesting' | 'granted' | 'denied' | 'error'>('idle');
+    const [userId, setUserId] = useState<string | null>(null);
 
     const [formData, setFormData] = useState({
         name: '',
@@ -69,26 +71,9 @@ export default function SignupPage() {
         }
     };
 
-    const handleSubmit = async () => {
+    const handleCreateAccount = async () => {
         setLoading(true);
         try {
-            let avatarUrl = `/student_profile_${Math.floor(Math.random() * 4) + 1}_1768606123923.png`; // Default
-
-            // If file selected, we need to upload. 
-            // BUT, strictly speaking, we can't upload to a user's folder until they exist (RLS might block if using 'authenticated' policy and user isn't auth'd yet).
-            // Actually, `supabase.auth.signUp` returns a session if auto-confirm is on.
-            // AND we can't upload BEFORE signup if RLS requires auth.
-            // Strategy: Signup first, then Upload if we have a session? 
-            // DB Trigger runs ON signup. So we need the URL *during* signup for the trigger to insert it.
-            // Catch-22? 
-            // Solution: 
-            // 1. Allow public uploads? No, insecure.
-            // 2. Upload AFTER signup using the returned session, then UPDATE the profile?
-            //    - Trigger creates profile with default avatar.
-            //    - Client uploads image.
-            //    - Client updates profile with new URL.
-            // This is safer. 
-
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email: formData.email,
                 password: formData.password,
@@ -100,31 +85,80 @@ export default function SignupPage() {
                         year: formData.year,
                         subjects: formData.subjects,
                         interests: formData.interests,
-                        // Don't pass avatar_url here if we are uploading later, 
-                        // or pass null to let trigger use default, then update.
                     }
                 }
             });
 
             if (authError) throw authError;
 
-            if (authData.user && avatarFile) {
-                // Now upload
-                const uploadedUrl = await uploadAvatar(authData.user.id);
-                if (uploadedUrl) {
-                    await supabase
-                        .from('users')
-                        .update({ avatar_url: uploadedUrl })
-                        .eq('id', authData.user.id);
+            if (authData.user) {
+                setUserId(authData.user.id);
+
+                // Upload avatar if selected
+                if (avatarFile) {
+                    const uploadedUrl = await uploadAvatar(authData.user.id);
+                    if (uploadedUrl) {
+                        await supabase
+                            .from('users')
+                            .update({ avatar_url: uploadedUrl })
+                            .eq('id', authData.user.id);
+                    }
                 }
+
+                // Move to location step
+                setStep(6);
             }
-
-            window.location.href = '/';
-
         } catch (error: any) {
             alert(error.message);
+        } finally {
             setLoading(false);
         }
+    };
+
+    const requestLocation = async () => {
+        if (!userId) {
+            window.location.href = '/';
+            return;
+        }
+
+        setLocationStatus('requesting');
+
+        if (!navigator.geolocation) {
+            setLocationStatus('error');
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                const { latitude, longitude } = position.coords;
+
+                // Save to Supabase
+                await supabase
+                    .from('users')
+                    .update({ lat: latitude, lng: longitude })
+                    .eq('id', userId);
+
+                setLocationStatus('granted');
+
+                // Redirect after brief delay to show success
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 1000);
+            },
+            (error) => {
+                console.error('Location error:', error);
+                setLocationStatus('denied');
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            }
+        );
+    };
+
+    const skipLocation = () => {
+        window.location.href = '/';
     };
 
     // Step Variants
@@ -135,7 +169,7 @@ export default function SignupPage() {
     };
 
     return (
-        <AuthLayout title="Join Fuzzle" subtitle={`Step ${step} of 5`}>
+        <AuthLayout title="Join Fuzzle" subtitle={`Step ${step} of 6`}>
             {/* Step Content */}
             {step === 1 && (
                 <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
@@ -380,14 +414,93 @@ export default function SignupPage() {
                         </button>
                         <button
                             type="button"
-                            onClick={handleSubmit}
+                            onClick={handleCreateAccount}
                             className="btn-primary"
                             style={{ flex: 1 }}
                             disabled={loading}
                         >
-                            {loading ? 'Creating Profile...' : (avatarFile ? 'Next: Finish' : 'Skip & Finish')}
+                            {loading ? 'Creating Profile...' : 'Next: Location'}
                         </button>
                     </div>
+                </motion.div>
+            )}
+
+            {step === 6 && (
+                <motion.div key="step6" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                    <h3 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '8px', color: 'white' }}>Enable Location</h3>
+                    <p style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.6)', marginBottom: '24px' }}>
+                        Share your location to see students near you and be discovered by others.
+                    </p>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '32px' }}>
+                        {/* Location Status Icon */}
+                        <div style={{
+                            width: '100px', height: '100px', borderRadius: '50%',
+                            background: locationStatus === 'granted' ? 'rgba(34, 197, 94, 0.2)' :
+                                locationStatus === 'denied' || locationStatus === 'error' ? 'rgba(239, 68, 68, 0.2)' :
+                                    'rgba(255,255,255,0.1)',
+                            border: `2px solid ${locationStatus === 'granted' ? 'rgba(34, 197, 94, 0.5)' :
+                                locationStatus === 'denied' || locationStatus === 'error' ? 'rgba(239, 68, 68, 0.5)' :
+                                    'rgba(255,255,255,0.2)'}`,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            marginBottom: '16px', transition: 'all 0.3s'
+                        }}>
+                            {locationStatus === 'requesting' ? (
+                                <span style={{ fontSize: '2rem', animation: 'spin 1s linear infinite' }}>📍</span>
+                            ) : locationStatus === 'granted' ? (
+                                <span style={{ fontSize: '2.5rem' }}>✅</span>
+                            ) : locationStatus === 'denied' || locationStatus === 'error' ? (
+                                <span style={{ fontSize: '2.5rem' }}>❌</span>
+                            ) : (
+                                <span style={{ fontSize: '2.5rem' }}>📍</span>
+                            )}
+                        </div>
+
+                        {/* Status Message */}
+                        <p style={{
+                            fontSize: '0.95rem',
+                            color: locationStatus === 'granted' ? '#22c55e' :
+                                locationStatus === 'denied' ? '#ef4444' : 'rgba(255,255,255,0.7)',
+                            textAlign: 'center',
+                            marginBottom: '8px'
+                        }}>
+                            {locationStatus === 'idle' && 'Tap the button below to share your location'}
+                            {locationStatus === 'requesting' && 'Requesting location access...'}
+                            {locationStatus === 'granted' && 'Location enabled! Redirecting to map...'}
+                            {locationStatus === 'denied' && 'Location access denied. You can still use the app.'}
+                            {locationStatus === 'error' && 'Could not get location. You can try again or skip.'}
+                        </p>
+                    </div>
+
+                    {locationStatus !== 'granted' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '24px' }}>
+                            <button
+                                type="button"
+                                onClick={requestLocation}
+                                className="btn-primary"
+                                style={{ width: '100%' }}
+                                disabled={locationStatus === 'requesting'}
+                            >
+                                {locationStatus === 'requesting' ? 'Getting Location...' :
+                                    locationStatus === 'denied' || locationStatus === 'error' ? 'Try Again' : 'Enable Location'}
+                            </button>
+
+                            {(locationStatus === 'idle' || locationStatus === 'denied' || locationStatus === 'error') && (
+                                <button
+                                    type="button"
+                                    onClick={skipLocation}
+                                    style={{
+                                        width: '100%', padding: '12px', borderRadius: '8px',
+                                        background: 'transparent', color: 'rgba(255,255,255,0.6)',
+                                        border: '1px solid rgba(255,255,255,0.2)',
+                                        transition: 'all 0.2s', cursor: 'pointer'
+                                    }}
+                                >
+                                    Skip for now
+                                </button>
+                            )}
+                        </div>
+                    )}
                 </motion.div>
             )}
 
