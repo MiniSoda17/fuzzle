@@ -140,7 +140,7 @@ export default function Home() {
         },
         (error) => {
           console.error('Error getting location:', error.message);
-          alert('Please enable location access to use Fuzzle!');
+          alert('Please enable location access to use Colleko!');
         },
         {
           enableHighAccuracy: true,

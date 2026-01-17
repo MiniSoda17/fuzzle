@@ -58,6 +58,9 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, title, subtitle }) =>
                 }}
             >
                 <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+                    <div style={{ width: '60px', height: '60px', margin: '0 auto 16px auto' }}>
+                        <img src="/colleko-logo.svg" alt="Colleko" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                    </div>
                     <h1 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '8px', letterSpacing: '-0.5px' }}>
                         {title}
                     </h1>

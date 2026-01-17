@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Fuzzle - Find Your Study Crew",
+  title: "Colleko - Find Your Study Crew",
   description: "Connect with university students near you for study sessions and meetups.",
 };
 

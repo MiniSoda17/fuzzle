@@ -204,7 +204,7 @@ export default function SignupPage() {
     };
 
     return (
-        <AuthLayout title="Join Fuzzle" subtitle={`Step ${step} of 6`}>
+        <AuthLayout title="Join Colleko" subtitle={`Step ${step} of 6`}>
             {/* Step Content */}
             {step === 1 && (
                 <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
