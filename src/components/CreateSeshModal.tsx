@@ -50,24 +50,48 @@ const CreateSeshModal: React.FC<CreateSeshModalProps> = ({ currentUser, onClose,
         }
     };
 
+    // Check if mobile
+    const isMobile = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
+
+    // Animation variants
+    const desktopVariants = {
+        hidden: { opacity: 0, scale: 0.95 },
+        visible: { opacity: 1, scale: 1 },
+        exit: { opacity: 0, scale: 0.95 }
+    };
+
+    const mobileVariants = {
+        hidden: { y: '100%' },
+        visible: { y: 0 },
+        exit: { y: '100%' }
+    };
+
     return (
         <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 50 }}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            variants={isMobile ? mobileVariants : desktopVariants}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             className="glass-panel"
             style={{
                 position: 'fixed',
-                bottom: '80px', // Above the FAB
-                left: '50%',
-                transform: 'translateX(-50%)',
-                width: '90%',
-                maxWidth: '400px',
+                top: isMobile ? 'auto' : '50%',
+                bottom: isMobile ? '0' : 'auto',
+                left: isMobile ? '0' : '50%',
+                right: isMobile ? '0' : 'auto',
+                transform: isMobile ? 'none' : 'translate(-50%, -50%)',
+                width: isMobile ? '100%' : '90%',
+                maxWidth: isMobile ? '100%' : '440px',
+                maxHeight: isMobile ? '85vh' : '90vh',
                 padding: '24px',
                 zIndex: 1002,
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '20px'
+                gap: '20px',
+                borderBottomLeftRadius: isMobile ? 0 : '24px',
+                borderBottomRightRadius: isMobile ? 0 : '24px',
+                overflowY: 'auto'
             }}
         >
             <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', textAlign: 'center' }}>Start a Sesh</h2>
