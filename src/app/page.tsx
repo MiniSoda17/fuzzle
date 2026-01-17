@@ -154,8 +154,18 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [currentUser?.id]); // Only re-run if user ID changes (initially)
 
-  // Memoize center to prevent map jumps
-  const mapCenter: [number, number] | undefined = currentUser ? [currentUser.lat, currentUser.lng] : undefined;
+  // Track if we've centered the map initially
+  const [initialCenter, setInitialCenter] = useState<[number, number] | undefined>(undefined);
+
+  // Set initial center once we have a user location
+  useEffect(() => {
+    if (currentUser && !initialCenter) {
+      setInitialCenter([currentUser.lat, currentUser.lng]);
+    }
+  }, [currentUser, initialCenter]);
+
+  // Pass initialCenter to map instead of constantly updating one
+  const mapCenter = initialCenter;
 
 
   const handleUserClick = (user: User) => {
