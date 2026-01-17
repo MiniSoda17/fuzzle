@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import type { User } from '../types';
+import type { User, Sesh } from '../types';
 import L from 'leaflet';
+import SeshMarker from './SeshMarker';
 
 // Fix for default Leaflet icons in Next.js/Webpack
 // We can try to rely on CSS custom markers mostly, but good to have fallback
@@ -11,7 +12,9 @@ import L from 'leaflet';
 
 interface MapComponentProps {
     users: User[];
+    seshes?: Sesh[];
     onUserClick: (user: User) => void;
+    onSeshClick?: (sesh: Sesh) => void;
     center?: [number, number];
 }
 
@@ -25,7 +28,7 @@ const MapController = ({ center }: { center?: [number, number] }) => {
     return null;
 };
 
-const MapComponent: React.FC<MapComponentProps> = ({ users, onUserClick, center }) => {
+const MapComponent: React.FC<MapComponentProps> = ({ users, seshes = [], onUserClick, onSeshClick, center }) => {
     return (
         <MapContainer
             center={[-27.4975, 153.0137]} // Default start (Brisbane)
@@ -40,6 +43,15 @@ const MapComponent: React.FC<MapComponentProps> = ({ users, onUserClick, center 
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
                 url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
             />
+
+            {/* Sesh Markers */}
+            {seshes.map((sesh) => (
+                <SeshMarker
+                    key={sesh.id}
+                    sesh={sesh}
+                    onClick={onSeshClick || (() => { })}
+                />
+            ))}
 
             {users.map((user) => {
                 // Create custom icon for each user
