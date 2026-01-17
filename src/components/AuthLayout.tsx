@@ -54,7 +54,9 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, title, subtitle }) =>
                     maxWidth: '420px',
                     padding: '40px',
                     zIndex: 10,
-                    background: 'rgba(22, 27, 34, 0.8)' // Slightly less opaque than map for depth
+                    background: 'rgba(22, 27, 34, 0.8)', // Slightly less opaque than map for depth
+                    maxHeight: '90vh',
+                    overflowY: 'auto'
                 }}
             >
                 <div style={{ textAlign: 'center', marginBottom: '32px' }}>
