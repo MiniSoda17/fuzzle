@@ -149,7 +149,6 @@ export default function SignupPage() {
 
     const requestLocation = async () => {
         if (!userId) {
-            router.refresh();
             setStep(7);
             return;
         }
@@ -175,7 +174,6 @@ export default function SignupPage() {
 
                 // Redirect after brief delay to show success
                 setTimeout(() => {
-                    router.refresh();
                     setStep(7);
                 }, 1000);
             },
@@ -192,7 +190,6 @@ export default function SignupPage() {
     };
 
     const skipLocation = () => {
-        router.refresh();
         setStep(7);
     };
 
@@ -224,8 +221,7 @@ export default function SignupPage() {
     };
 
     const handleFreePlan = () => {
-        router.refresh();
-        router.replace('/map');
+        router.push('/map');
     };
 
     // Step Variants

@@ -36,7 +36,7 @@ export async function middleware(request: NextRequest) {
 
     const { data: { user } } = await supabase.auth.getUser();
 
-    const isAuthPage = request.nextUrl.pathname === '/signup' || request.nextUrl.pathname === '/login';
+    const isLoginPage = request.nextUrl.pathname === '/login';
     const isAppPage = request.nextUrl.pathname.startsWith('/map');
 
     // If user is not authenticated and trying to access app pages (map), redirect to login
@@ -46,7 +46,7 @@ export async function middleware(request: NextRequest) {
     }
 
     // If user is authenticated and trying to access auth pages, redirect to map
-    if (user && isAuthPage) {
+    if (user && isLoginPage) {
         const mapUrl = new URL('/map', request.url);
         return NextResponse.redirect(mapUrl);
     }
