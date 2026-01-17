@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import AuthLayout from '@/components/AuthLayout';
 import Input from '@/components/ui/Input';
@@ -10,6 +11,7 @@ import { DEGREES, INTERESTS, Course } from '../../data/courses';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function SignupPage() {
+    const router = useRouter();
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [locationStatus, setLocationStatus] = useState<'idle' | 'requesting' | 'granted' | 'denied' | 'error'>('idle');
@@ -147,7 +149,8 @@ export default function SignupPage() {
 
     const requestLocation = async () => {
         if (!userId) {
-            window.location.href = '/';
+            router.refresh();
+            router.replace('/');
             return;
         }
 
@@ -172,7 +175,8 @@ export default function SignupPage() {
 
                 // Redirect after brief delay to show success
                 setTimeout(() => {
-                    window.location.href = '/';
+                    router.refresh();
+                    router.replace('/');
                 }, 1000);
             },
             (error) => {
@@ -188,7 +192,8 @@ export default function SignupPage() {
     };
 
     const skipLocation = () => {
-        window.location.href = '/';
+        router.refresh();
+        router.replace('/');
     };
 
     // Step Variants

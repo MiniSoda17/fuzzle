@@ -2,12 +2,15 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import AuthLayout from '@/components/AuthLayout';
 import Input from '@/components/ui/Input';
 
 export default function LoginPage() {
     const [loading, setLoading] = useState(false);
+
+    const router = useRouter();
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -18,8 +21,6 @@ export default function LoginPage() {
         const password = formData.get('password') as string;
 
         try {
-
-
             const { error } = await supabase.auth.signInWithPassword({
                 email,
                 password,
@@ -27,12 +28,12 @@ export default function LoginPage() {
 
             if (error) throw error;
 
-            // Redirect to map
-            window.location.href = '/';
+            // Refresh router to sync server state (middleware) then navigate
+            router.refresh();
+            router.replace('/');
 
         } catch (error: any) {
             alert(error.message);
-        } finally {
             setLoading(false);
         }
     };
