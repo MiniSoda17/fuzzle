@@ -62,26 +62,48 @@ const JoinSeshModal: React.FC<JoinSeshModalProps> = ({ sesh, currentUser, onClos
         }
     };
 
+    // Check for mobile
+    const isMobile = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
+
+    // Animation variants
+    const desktopVariants = {
+        hidden: { opacity: 0, scale: 0.95 },
+        visible: { opacity: 1, scale: 1 },
+        exit: { opacity: 0, scale: 0.95 }
+    };
+
+    const mobileVariants = {
+        hidden: { y: '100%' },
+        visible: { y: 0 },
+        exit: { y: '100%' }
+    };
+
     return (
         <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            variants={isMobile ? mobileVariants : desktopVariants}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             className="glass-panel"
             style={{
                 position: 'fixed',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                width: '90%',
-                maxWidth: '320px',
+                top: isMobile ? 'auto' : '50%',
+                bottom: isMobile ? '0' : 'auto',
+                left: isMobile ? '0' : '50%',
+                right: isMobile ? '0' : 'auto',
+                transform: isMobile ? 'none' : 'translate(-50%, -50%)',
+                width: isMobile ? '100%' : '90%',
+                maxWidth: isMobile ? '100%' : '320px',
                 padding: '24px',
                 zIndex: 1003,
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 gap: '16px',
-                textAlign: 'center'
+                textAlign: 'center',
+                borderBottomLeftRadius: isMobile ? 0 : '24px',
+                borderBottomRightRadius: isMobile ? 0 : '24px'
             }}
         >
             <div style={{
