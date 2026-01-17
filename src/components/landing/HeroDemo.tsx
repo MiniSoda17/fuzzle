@@ -13,12 +13,6 @@ export default function HeroDemo() {
                 transition={{ duration: 1.5, ease: "easeOut" }}
                 style={{ transformStyle: 'preserve-3d' }}
             >
-                {/* Animated Map Pins */}
-                <MapPin top="20%" left="25%" delay={0} color="#F43F5E" />
-                <MapPin top="45%" left="60%" delay={0.5} color="#F43F5E" />
-                <MapPin top="70%" left="35%" delay={1} color="#F43F5E" />
-                <MapPin top="50%" left="80%" delay={1.5} color="#F43F5E" />
-
                 {/* Floating Cards - "Million Dollar" Look */}
                 <FloatingCard
                     top="15%"
@@ -52,23 +46,6 @@ export default function HeroDemo() {
 
             </motion.div>
         </div>
-    );
-}
-
-function MapPin({ top, left, delay, color }: { top: string; left: string; delay: number; color: string }) {
-    return (
-        <motion.div
-            className={styles.mapPin}
-            style={{ top, left, background: color }}
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: [1, 1.5, 1], opacity: 1 }}
-            transition={{
-                duration: 2,
-                repeat: Infinity,
-                delay: delay,
-                ease: "easeInOut"
-            }}
-        />
     );
 }
 

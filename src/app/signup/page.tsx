@@ -150,7 +150,7 @@ export default function SignupPage() {
     const requestLocation = async () => {
         if (!userId) {
             router.refresh();
-            router.replace('/map');
+            setStep(7);
             return;
         }
 
@@ -176,7 +176,7 @@ export default function SignupPage() {
                 // Redirect after brief delay to show success
                 setTimeout(() => {
                     router.refresh();
-                    router.replace('/map');
+                    setStep(7);
                 }, 1000);
             },
             (error) => {
@@ -193,6 +193,38 @@ export default function SignupPage() {
 
     const skipLocation = () => {
         router.refresh();
+        setStep(7);
+    };
+
+    const handleSubscription = async () => {
+        setLoading(true);
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error('No user found');
+
+            const response = await fetch('/api/create-checkout-session', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId: user.id,
+                    email: user.email,
+                }),
+            });
+
+            const { url, error } = await response.json();
+            if (error) throw new Error(error);
+            if (url) window.location.href = url;
+
+        } catch (error: any) {
+            alert(error.message);
+            setLoading(false);
+        }
+    };
+
+    const handleFreePlan = () => {
+        router.refresh();
         router.replace('/map');
     };
 
@@ -204,7 +236,8 @@ export default function SignupPage() {
     };
 
     return (
-        <AuthLayout title="Join Colleko" subtitle={`Step ${step} of 6`}>
+        <AuthLayout title={step === 7 ? "Choose Your Plan" : "Join Colleko"} subtitle={step === 7 ? "Start your journey" : `Step ${step} of 6`}>
+
             {/* Step Content */}
             {step === 1 && (
                 <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
@@ -542,6 +575,70 @@ export default function SignupPage() {
             <div style={{ marginTop: '24px', textAlign: 'center', fontSize: '0.9rem', color: '#8b949e' }}>
                 Already have an account? <Link href="/login" style={{ color: 'var(--primary-color)', textDecoration: 'none', fontWeight: 600 }}>Sign In</Link>
             </div>
+            {step === 7 && (
+                <motion.div key="step7" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                    <div style={{ display: 'grid', gap: '16px' }}>
+                        {/* Early Bird Plan */}
+                        <div style={{
+                            background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(244, 63, 94, 0.2))',
+                            border: '1px solid var(--primary-color)',
+                            borderRadius: '16px',
+                            padding: '24px',
+                            position: 'relative',
+                            overflow: 'hidden'
+                        }}>
+                            <div style={{
+                                position: 'absolute', top: '12px', right: '12px',
+                                background: 'var(--accent-color)', color: 'white',
+                                fontSize: '0.7rem', fontWeight: 700, padding: '4px 8px', borderRadius: '50px'
+                            }}>
+                                EARLY BIRD
+                            </div>
+                            <h3 style={{ fontSize: '1.4rem', fontWeight: 700, margin: '0 0 8px', color: 'white' }}>Premium</h3>
+                            <div style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '16px', color: 'white' }}>
+                                $7.99<span style={{ fontSize: '1rem', fontWeight: 400, color: 'rgba(255,255,255,0.7)' }}>/mo</span>
+                            </div>
+                            <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px', color: 'rgba(255,255,255,0.9)', fontSize: '0.95rem', display: 'grid', gap: '8px' }}>
+                                <li style={{ display: 'flex', gap: '8px' }}>✅ Unlimited Meetups</li>
+                                <li style={{ display: 'flex', gap: '8px' }}>✅ See Who's Nearby</li>
+                                <li style={{ display: 'flex', gap: '8px' }}>✅ Early Adopter Badge</li>
+                                <li style={{ display: 'flex', gap: '8px' }}>✅ Support Development</li>
+                            </ul>
+                            <button
+                                onClick={handleSubscription}
+                                className="btn-primary"
+                                style={{ width: '100%', padding: '14px', borderRadius: '12px', fontSize: '1rem' }}
+                                disabled={loading}
+                            >
+                                {loading ? 'Processing...' : 'Get Early Bird Offer'}
+                            </button>
+                        </div>
+
+                        {/* Free Plan */}
+                        <div style={{
+                            background: 'rgba(255, 255, 255, 0.05)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '16px',
+                            padding: '20px'
+                        }}>
+                            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, margin: '0 0 4px', color: 'white' }}>Free Tier</h3>
+                            <p style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.6)', marginBottom: '16px' }}>
+                                Basic access to map and meetups but with limited features.
+                            </p>
+                            <button
+                                onClick={handleFreePlan}
+                                style={{
+                                    width: '100%', padding: '12px', borderRadius: '12px',
+                                    background: 'transparent', border: '1px solid rgba(255,255,255,0.2)',
+                                    color: 'white', cursor: 'pointer', fontWeight: 500
+                                }}
+                            >
+                                Continue for Free
+                            </button>
+                        </div>
+                    </div>
+                </motion.div>
+            )}
         </AuthLayout>
     );
 }
