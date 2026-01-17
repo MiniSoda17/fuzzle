@@ -22,6 +22,7 @@ interface MapComponentProps {
     onUserClick: (user: User) => void;
     onSeshClick?: (sesh: Sesh) => void;
     center?: [number, number];
+    currentUser?: User | null;
 }
 
 const MapController = ({ center }: { center?: [number, number] }) => {
@@ -34,7 +35,7 @@ const MapController = ({ center }: { center?: [number, number] }) => {
     return null;
 };
 
-const MapComponent: React.FC<MapComponentProps> = ({ users, seshes = [], onUserClick, onSeshClick, center }) => {
+const MapComponent: React.FC<MapComponentProps> = ({ users, seshes = [], onUserClick, onSeshClick, center, currentUser }) => {
     return (
         <MapContainer
             center={[-27.4975, 153.0137]} // Default start (Brisbane)
@@ -67,9 +68,10 @@ const MapComponent: React.FC<MapComponentProps> = ({ users, seshes = [], onUserC
                 maxClusterRadius={40} // Smaller radius handles overlaps better when close
             >
                 {users.map((user) => {
+                    const isCurrentUser = currentUser?.id === user.id;
                     // Create custom icon for each user
                     const customIcon = L.divIcon({
-                        className: 'custom-marker',
+                        className: `custom-marker ${isCurrentUser ? 'gold-marker' : ''}`,
                         html: `<div class="marker-content"><img src="${user.avatar_url}" alt="${user.name}" /></div>`,
                         iconSize: [48, 48],
                         iconAnchor: [24, 24]

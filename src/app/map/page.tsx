@@ -368,6 +368,7 @@ export default function Home() {
         onUserClick={handleUserClick}
         onSeshClick={handleSeshClick}
         center={mapCenter}
+        currentUser={currentUser}
       />
 
       {currentUser && (

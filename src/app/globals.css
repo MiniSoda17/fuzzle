@@ -121,6 +121,13 @@ textarea {
   z-index: 1000 !important;
 }
 
+.gold-marker .marker-content {
+  border-color: #FFD700 !important;
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+  transform: scale(1.1);
+  z-index: 2000 !important;
+}
+
 /* Meetup Modal Responsive Styles */
 /* Meetup Modal Responsive Styles */
 .meetup-modal {
