@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import type { User, Sesh, Meetup } from '../types';
 import { supabase } from '@/lib/supabase';
@@ -28,6 +28,12 @@ export default function Home() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [viewState, setViewState] = useState<'map' | 'meetup-offer' | 'timer' | 'confirmed'>('map');
+  const viewStateRef = useRef(viewState);
+
+  useEffect(() => {
+    viewStateRef.current = viewState;
+  }, [viewState]);
+
   const [incomingRequest, setIncomingRequest] = useState<Meetup | null>(null);
 
   // Sesh State
@@ -154,6 +160,9 @@ export default function Home() {
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'meetups', filter: `sender_id=eq.${currentUser.id}` }, async (payload) => {
         if (payload.new.status === 'accepted') {
+          // If we are currently in the meetup flow, let the flow handle the confirmation
+          if (viewStateRef.current === 'meetup-offer') return;
+
           // Fetch receiver details
           const { data } = await supabase.from('users').select('*').eq('id', payload.new.receiver_id).single();
           if (data) {
