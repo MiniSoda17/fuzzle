@@ -2,13 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import type { User } from '../types';
-import { UserIcon, ClockIcon } from '@heroicons/react/24/outline';
-import { CheckCircleIcon, XCircleIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/solid';
+import { UserIcon, ClockIcon, MapPinIcon, ChatBubbleBottomCenterTextIcon } from '@heroicons/react/24/outline';
+import { CheckCircleIcon, XCircleIcon, ChevronDownIcon } from '@heroicons/react/24/solid';
 
 interface NotificationListProps {
     currentUser: User;
     onClose: () => void;
-    onSelectRequest?: (request: any) => void; // Kept for backward compat but optional
+    onSelectRequest?: (request: any) => void;
 }
 
 interface MeetupRecord {
@@ -20,6 +20,9 @@ interface MeetupRecord {
     receiver_id: string;
     contact_name?: string;
     contact_avatar?: string;
+    meetup_time?: string;
+    location_name?: string;
+    message?: string;
 }
 
 const NotificationItem = ({
@@ -43,7 +46,7 @@ const NotificationItem = ({
             const calculateTimeLeft = () => {
                 const created = new Date(item.created_at).getTime();
                 const now = new Date().getTime();
-                const expiresAt = created + (15 * 60 * 1000); // 15 mins expiry
+                const expiresAt = created + (30 * 60 * 1000); // 30 mins expiry
                 const diff = Math.floor((expiresAt - now) / 1000);
 
                 if (diff <= 0) {
@@ -137,7 +140,34 @@ const NotificationItem = ({
                         style={{ overflow: 'hidden' }}
                     >
                         <div style={{ padding: '0 16px 16px 16px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px' }}>
-                            {/* Additional Details */}
+
+                            {/* Detailed Info Grid */}
+                            <div style={{ display: 'grid', gap: '12px', marginBottom: '16px' }}>
+                                {(item.meetup_time || item.location_name) && (
+                                    <div style={{ display: 'flex', gap: '12px' }}>
+                                        {item.meetup_time && (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#fff', background: 'rgba(255,255,255,0.05)', padding: '6px 10px', borderRadius: '8px', fontSize: '0.85rem' }}>
+                                                <ClockIcon width={14} color="#fbbf24" />
+                                                <span>{item.meetup_time}</span>
+                                            </div>
+                                        )}
+                                        {item.location_name && (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#fff', background: 'rgba(255,255,255,0.05)', padding: '6px 10px', borderRadius: '8px', fontSize: '0.85rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                <MapPinIcon width={14} color="#ef4444" />
+                                                <span>{item.location_name}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                                {item.message && (
+                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', background: 'rgba(50,50,50,0.3)', padding: '8px', borderRadius: '8px' }}>
+                                        <ChatBubbleBottomCenterTextIcon width={14} style={{ marginTop: '2px', color: '#aaa' }} />
+                                        <p style={{ fontSize: '0.85rem', color: '#ddd', margin: 0, fontStyle: 'italic' }}>"{item.message}"</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Status Line */}
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                                 <div style={{ fontSize: '0.85rem', color: '#bbb' }}>
                                     Status: <span style={{

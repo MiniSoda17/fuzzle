@@ -1,10 +1,8 @@
-'use client';
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import type { User } from '../types';
-import { CheckCircleIcon, MapPinIcon } from '@heroicons/react/24/solid';
+import { CheckCircleIcon, MapPinIcon, ClockIcon, ChatBubbleBottomCenterTextIcon } from '@heroicons/react/24/solid';
 
 interface IncomingRequestModalProps {
     request: {
@@ -13,6 +11,9 @@ interface IncomingRequestModalProps {
         activity: string;
         status?: string;
         created_at?: string;
+        meetup_time?: string;
+        location_name?: string;
+        message?: string;
     };
     onClose: () => void;
 }
@@ -43,7 +44,7 @@ export default function IncomingRequestModal({ request, onClose }: IncomingReque
             const calculateTimeLeft = () => {
                 const created = new Date(request.created_at!).getTime();
                 const now = new Date().getTime();
-                const expiresAt = created + (15 * 60 * 1000); // 15 mins expiry
+                const expiresAt = created + (30 * 60 * 1000); // 30 mins expiry
                 const diff = Math.floor((expiresAt - now) / 1000);
 
                 if (diff <= 0) {
@@ -75,9 +76,9 @@ export default function IncomingRequestModal({ request, onClose }: IncomingReque
 
         return (
             <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
+                initial={{ opacity: 0, scale: 0.9, x: "-50%" }}
+                animate={{ opacity: 1, scale: 1, x: "-50%" }}
+                exit={{ opacity: 0, scale: 0.9, x: "-50%" }}
                 className="glass-panel"
                 style={{
                     position: 'absolute',
@@ -114,9 +115,18 @@ export default function IncomingRequestModal({ request, onClose }: IncomingReque
                         <p style={{ color: '#aaa', fontSize: '0.9rem' }}>Meeting Point</p>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <MapPinIcon style={{ width: '20px', height: '20px', color: '#ef4444' }} />
-                            <p style={{ fontSize: '1.1rem', fontWeight: 600 }}>Main Library Entrance</p>
+                            <p style={{ fontSize: '1.1rem', fontWeight: 600 }}>{request.location_name || 'Main Library Entrance'}</p>
                         </div>
                     </div>
+                    {request.meetup_time && (
+                        <div style={{ marginTop: '12px' }}>
+                            <p style={{ color: '#aaa', fontSize: '0.9rem' }}>Time</p>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <ClockIcon style={{ width: '20px', height: '20px', color: '#fbbf24' }} />
+                                <p style={{ fontSize: '1.1rem', fontWeight: 600 }}>{request.meetup_time}</p>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <button
@@ -133,8 +143,8 @@ export default function IncomingRequestModal({ request, onClose }: IncomingReque
     if (currentStatus === 'rejected') {
         return (
             <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
+                initial={{ opacity: 0, scale: 0.9, x: "-50%" }}
+                animate={{ opacity: 1, scale: 1, x: "-50%" }}
                 className="glass-panel"
                 style={{
                     position: 'absolute', bottom: '24px', left: '50%', transform: 'translateX(-50%)',
@@ -149,9 +159,9 @@ export default function IncomingRequestModal({ request, onClose }: IncomingReque
 
     return (
         <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 50 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 50 }}
+            initial={{ opacity: 0, scale: 0.9, y: 50, x: "-50%" }}
+            animate={{ opacity: 1, scale: 1, y: 0, x: "-50%" }}
+            exit={{ opacity: 0, scale: 0.9, y: 50, x: "-50%" }}
             className="glass-panel"
             style={{
                 position: 'absolute',
@@ -176,6 +186,34 @@ export default function IncomingRequestModal({ request, onClose }: IncomingReque
             <h3 style={{ fontSize: '1.2rem', marginBottom: '8px' }}>
                 {sender.name} wants to <span style={{ color: 'var(--primary-color)' }}>{request.activity}</span>!
             </h3>
+
+            {/* Request Details */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px', alignItems: 'center' }}>
+                {(request.meetup_time || request.location_name) && (
+                    <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                        {request.meetup_time && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.9rem', background: 'rgba(255,255,255,0.05)', padding: '4px 8px', borderRadius: '8px' }}>
+                                <ClockIcon width={16} color="#fbbf24" />
+                                <span>{request.meetup_time}</span>
+                            </div>
+                        )}
+                        {request.location_name && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.9rem', background: 'rgba(255,255,255,0.05)', padding: '4px 8px', borderRadius: '8px' }}>
+                                <MapPinIcon width={16} color="#ef4444" />
+                                <span>{request.location_name}</span>
+                            </div>
+                        )}
+                    </div>
+                )}
+                {request.message && (
+                    <div style={{ display: 'flex', gap: '6px', maxWidth: '100%' }}>
+                        <ChatBubbleBottomCenterTextIcon width={16} color="#aaa" style={{ flexShrink: 0, marginTop: '2px' }} />
+                        <p style={{ fontStyle: 'italic', color: '#ddd', fontSize: '0.9rem' }}>
+                            "{request.message}"
+                        </p>
+                    </div>
+                )}
+            </div>
 
             {timeLeft && (
                 <p style={{ color: '#fbbf24', fontWeight: 'bold', marginBottom: '20px' }}>

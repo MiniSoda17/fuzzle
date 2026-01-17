@@ -2,12 +2,14 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircleIcon, MapPinIcon } from '@heroicons/react/24/solid';
+import { CheckCircleIcon, MapPinIcon, ClockIcon } from '@heroicons/react/24/solid';
 import type { User } from '../types';
 
 interface MeetupConfirmedModalProps {
     otherUser: User;
     activity: string;
+    location?: string;
+    time?: string;
     onClose: () => void;
 }
 
@@ -19,7 +21,7 @@ const ACTIVITIES_MAP: Record<string, { emoji: string; label: string }> = {
     'walk': { emoji: '🚶', label: 'Walk' },
 };
 
-export default function MeetupConfirmedModal({ otherUser, activity, onClose }: MeetupConfirmedModalProps) {
+export default function MeetupConfirmedModal({ otherUser, activity, location, time, onClose }: MeetupConfirmedModalProps) {
     const actInfo = ACTIVITIES_MAP[activity] || { emoji: '✨', label: activity };
 
     return (
@@ -75,9 +77,19 @@ export default function MeetupConfirmedModal({ otherUser, activity, onClose }: M
                     <p style={{ color: '#aaa', fontSize: '0.9rem', marginBottom: '4px' }}>Meeting Point</p>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <MapPinIcon style={{ width: '20px', height: '20px', color: '#ef4444' }} />
-                        <p style={{ fontSize: '1.1rem', fontWeight: 600 }}>Main Library Entrance</p>
+                        <p style={{ fontSize: '1.1rem', fontWeight: 600 }}>{location || 'Main Library Entrance'}</p>
                     </div>
                 </div>
+
+                {time && (
+                    <div style={{ marginTop: '16px' }}>
+                        <p style={{ color: '#aaa', fontSize: '0.9rem', marginBottom: '4px' }}>Time</p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <ClockIcon style={{ width: '20px', height: '20px', color: '#fbbf24' }} />
+                            <p style={{ fontSize: '1.1rem', fontWeight: 600 }}>{time}</p>
+                        </div>
+                    </div>
+                )}
             </div>
 
             <button

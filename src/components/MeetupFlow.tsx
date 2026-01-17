@@ -4,7 +4,12 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import type { ActivityType, User } from '../types';
 import { supabase } from '@/lib/supabase';
-import { CheckCircleIcon, MapPinIcon } from '@heroicons/react/24/solid';
+import {
+    CheckCircleIcon,
+    MapPinIcon,
+    ClockIcon,
+    ChatBubbleBottomCenterTextIcon
+} from '@heroicons/react/24/solid';
 
 interface MeetupFlowProps {
     targetUser: User;
@@ -22,10 +27,15 @@ const ACTIVITIES: { type: ActivityType; emoji: string; label: string }[] = [
 ];
 
 const MeetupFlow: React.FC<MeetupFlowProps> = ({ targetUser, currentUser, onClose, onConfirm }) => {
-    const [step, setStep] = useState<'select' | 'waiting' | 'accepted'>('select');
+    const [step, setStep] = useState<'select' | 'details' | 'waiting' | 'accepted'>('select');
     const [selectedActivity, setSelectedActivity] = useState<ActivityType | null>(null);
     const [meetupId, setMeetupId] = useState<string | null>(null);
     const [timeLeft, setTimeLeft] = useState(30 * 60);
+
+    // New Details State
+    const [meetupTime, setMeetupTime] = useState('');
+    const [location, setLocation] = useState('');
+    const [message, setMessage] = useState('');
 
     // Timer logic
     useEffect(() => {
@@ -79,7 +89,10 @@ const MeetupFlow: React.FC<MeetupFlowProps> = ({ targetUser, currentUser, onClos
                         sender_id: currentUser.id,
                         receiver_id: targetUser.id,
                         activity: selectedActivity,
-                        status: 'pending'
+                        status: 'pending',
+                        meetup_time: meetupTime || null,
+                        location_name: location || null,
+                        message: message || null
                     })
                     .select()
                     .single();
@@ -90,6 +103,7 @@ const MeetupFlow: React.FC<MeetupFlowProps> = ({ targetUser, currentUser, onClos
                     setStep('waiting');
                 }
             } catch (err: any) {
+                console.error(err);
                 alert('Failed to send request: ' + err.message);
             }
         }
@@ -141,6 +155,106 @@ const MeetupFlow: React.FC<MeetupFlowProps> = ({ targetUser, currentUser, onClos
                     <button
                         className="btn-primary"
                         style={{ flex: 2, opacity: selectedActivity ? 1 : 0.5, pointerEvents: selectedActivity ? 'auto' : 'none' }}
+                        onClick={() => setStep('details')}
+                    >
+                        Next
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    if (step === 'details') {
+        return (
+            <div style={{ padding: '0 8px' }}>
+                <h2 style={{ textAlign: 'center', marginBottom: '24px', fontSize: '1.5rem' }}>Add Details</h2>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
+                    {/* Time Input */}
+                    <div>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', color: '#aaa', marginBottom: '8px' }}>
+                            <ClockIcon width={16} /> Time
+                        </label>
+                        <input
+                            type="time"
+                            value={meetupTime}
+                            onChange={(e) => setMeetupTime(e.target.value)}
+                            style={{
+                                width: '100%',
+                                padding: '14px',
+                                borderRadius: '12px',
+                                background: 'rgba(255,255,255,0.05)',
+                                border: '1px solid var(--border-color)',
+                                color: 'white',
+                                fontSize: '1rem'
+                            }}
+                        />
+                    </div>
+
+                    {/* Location Input */}
+                    <div>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', color: '#aaa', marginBottom: '8px' }}>
+                            <MapPinIcon width={16} /> Location
+                        </label>
+                        <input
+                            type="text"
+                            placeholder="e.g. Main Library, Starbucks..."
+                            value={location}
+                            onChange={(e) => setLocation(e.target.value)}
+                            style={{
+                                width: '100%',
+                                padding: '14px',
+                                borderRadius: '12px',
+                                background: 'rgba(255,255,255,0.05)',
+                                border: '1px solid var(--border-color)',
+                                color: 'white',
+                                fontSize: '1rem'
+                            }}
+                        />
+                    </div>
+
+                    {/* Message Input */}
+                    <div>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', color: '#aaa', marginBottom: '8px' }}>
+                            <ChatBubbleBottomCenterTextIcon width={16} /> Message
+                        </label>
+                        <textarea
+                            rows={3}
+                            placeholder="Optional message..."
+                            value={message}
+                            onChange={(e) => setMessage(e.target.value)}
+                            style={{
+                                width: '100%',
+                                padding: '14px',
+                                borderRadius: '12px',
+                                background: 'rgba(255,255,255,0.05)',
+                                border: '1px solid var(--border-color)',
+                                color: 'white',
+                                fontSize: '1rem',
+                                resize: 'none'
+                            }}
+                        />
+                    </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '12px' }}>
+                    <button
+                        onClick={() => setStep('select')}
+                        style={{
+                            flex: 1,
+                            padding: '14px',
+                            borderRadius: '50px',
+                            background: 'transparent',
+                            color: '#aaa',
+                            fontWeight: 600,
+                            border: '1px solid var(--border-color)'
+                        }}
+                    >
+                        Back
+                    </button>
+                    <button
+                        className="btn-primary"
+                        style={{ flex: 2 }}
                         onClick={handleSend}
                     >
                         Send Request
@@ -219,9 +333,18 @@ const MeetupFlow: React.FC<MeetupFlowProps> = ({ targetUser, currentUser, onClos
                     <p style={{ color: '#aaa', fontSize: '0.9rem' }}>Meeting Point</p>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <MapPinIcon style={{ width: '20px', height: '20px', color: '#ef4444' }} />
-                        <p style={{ fontSize: '1.1rem', fontWeight: 600 }}>Main Library Entrance</p>
+                        <p style={{ fontSize: '1.1rem', fontWeight: 600 }}>{location || 'Main Library Entrance'}</p>
                     </div>
                 </div>
+                {meetupTime && (
+                    <div style={{ marginTop: '12px' }}>
+                        <p style={{ color: '#aaa', fontSize: '0.9rem' }}>Time</p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <ClockIcon style={{ width: '20px', height: '20px', color: '#fbbf24' }} />
+                            <p style={{ fontSize: '1.1rem', fontWeight: 600 }}>{meetupTime}</p>
+                        </div>
+                    </div>
+                )}
             </div>
 
             <button

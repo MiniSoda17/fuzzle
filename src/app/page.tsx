@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import type { User, Sesh } from '../types';
+import type { User, Sesh, Meetup } from '../types';
 import { supabase } from '@/lib/supabase';
 import { AnimatePresence, motion } from 'framer-motion';
 import MeetupFlow from '@/components/MeetupFlow';
@@ -28,7 +28,7 @@ export default function Home() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [viewState, setViewState] = useState<'map' | 'meetup-offer' | 'timer' | 'confirmed'>('map');
-  const [incomingRequest, setIncomingRequest] = useState<{ id: string; sender_id: string; activity: string } | null>(null);
+  const [incomingRequest, setIncomingRequest] = useState<Meetup | null>(null);
 
   // Sesh State
   const [seshes, setSeshes] = useState<Sesh[]>([]);
@@ -36,7 +36,7 @@ export default function Home() {
   const [selectedSesh, setSelectedSesh] = useState<Sesh | null>(null);
   const [activeSesh, setActiveSesh] = useState<Sesh | null>(null); // Track the session user is IN
   const [showActiveSeshModal, setShowActiveSeshModal] = useState(false);
-  const [acceptedMeetup, setAcceptedMeetup] = useState<{ otherUser: User, activity: string } | null>(null);
+  const [acceptedMeetup, setAcceptedMeetup] = useState<{ otherUser: User, activity: string, location?: string, time?: string } | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
 
   // 1. Initial Data Fetch & Realtime Subscription
@@ -157,7 +157,12 @@ export default function Home() {
           // Fetch receiver details
           const { data } = await supabase.from('users').select('*').eq('id', payload.new.receiver_id).single();
           if (data) {
-            setAcceptedMeetup({ otherUser: data as User, activity: payload.new.activity });
+            setAcceptedMeetup({
+              otherUser: data as User,
+              activity: payload.new.activity,
+              location: payload.new.location_name,
+              time: payload.new.meetup_time
+            });
           }
         }
       })
@@ -580,6 +585,8 @@ export default function Home() {
           <MeetupConfirmedModal
             otherUser={acceptedMeetup.otherUser}
             activity={acceptedMeetup.activity}
+            location={acceptedMeetup.location}
+            time={acceptedMeetup.time}
             onClose={() => setAcceptedMeetup(null)}
           />
         )}
