@@ -89,6 +89,14 @@ export default function SignupPage() {
             //    - Client updates profile with new URL.
             // This is safer. 
 
+            // Get default location based on university
+            const universityLocations = {
+                'UQ': { lat: -27.4975, lng: 153.0137 },
+                'QUT': { lat: -27.4772, lng: 153.0285 },
+                'Griffith': { lat: -27.5544, lng: 153.0505 }
+            };
+            const defaultLocation = universityLocations[formData.university as keyof typeof universityLocations] || { lat: -27.4975, lng: 153.0137 };
+
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email: formData.email,
                 password: formData.password,
@@ -100,8 +108,11 @@ export default function SignupPage() {
                         year: formData.year,
                         subjects: formData.subjects,
                         interests: formData.interests,
-                        // Don't pass avatar_url here if we are uploading later, 
-                        // or pass null to let trigger use default, then update.
+                        bio: '',  // Default empty bio, user can fill later
+                        lat: defaultLocation.lat,
+                        lng: defaultLocation.lng,
+                        is_online: true,
+                        avatar_url: avatarUrl  // Use the default avatar
                     }
                 }
             });
