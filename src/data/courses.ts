@@ -1,7 +1,26 @@
+export interface University {
+    id: 'UQ' | 'QUT' | 'Griffith' | 'USYD' | 'UNSW' | 'UniMelb' | 'Monash' | 'UTS';
+    name: string;
+    color: string;
+    logo: string;
+    location: { lat: number; lng: number };
+}
+
+export const UNIVERSITIES: University[] = [
+    { id: 'UQ', name: 'University of Queensland', color: '#51247A', logo: '/logos/uq.svg', location: { lat: -27.4975, lng: 153.0137 } },
+    { id: 'QUT', name: 'Queensland University of Technology', color: '#003E7E', logo: '/logos/qut.svg', location: { lat: -27.4772, lng: 153.0285 } },
+    { id: 'Griffith', name: 'Griffith University', color: '#CC0000', logo: '/logos/griffith.svg', location: { lat: -27.5544, lng: 153.0505 } },
+    { id: 'USYD', name: 'University of Sydney', color: '#E64626', logo: '/logos/usyd.svg', location: { lat: -33.8886, lng: 151.1873 } },
+    { id: 'UNSW', name: 'UNSW Sydney', color: '#FFDD00', logo: '/logos/unsw.svg', location: { lat: -33.9173, lng: 151.2313 } },
+    { id: 'UniMelb', name: 'University of Melbourne', color: '#094183', logo: '/logos/unimelb.svg', location: { lat: -37.7964, lng: 144.9612 } },
+    { id: 'Monash', name: 'Monash University', color: '#006DAE', logo: '/logos/monash.svg', location: { lat: -37.9105, lng: 145.1362 } },
+    { id: 'UTS', name: 'University of Technology Sydney', color: '#000000', logo: '/logos/uts.svg', location: { lat: -33.8832, lng: 151.2007 } },
+];
+
 export interface Course {
     code: string;
     name: string;
-    university: 'UQ' | 'QUT' | 'Griffith';
+    university: University['id'];
 }
 
 export const COURSES: Course[] = [
@@ -14,178 +33,82 @@ export const COURSES: Course[] = [
     { code: 'CSSE3010', name: 'Embedded Systems Design & Interfacing', university: 'UQ' },
     { code: 'CSSE3100', name: 'Reasoning About Programs', university: 'UQ' },
     { code: 'CSSE4004', name: 'Distributed Computing', university: 'UQ' },
-    { code: 'CSSE7030', name: 'Introduction to Software Engineering (Postgrad)', university: 'UQ' },
     { code: 'INFS1200', name: 'Introduction to Information Systems', university: 'UQ' },
-    { code: 'INFS2200', name: 'Relational Database Systems', university: 'UQ' },
-    { code: 'INFS3200', name: 'Advanced Database Systems', university: 'UQ' },
-    { code: 'INFS4203', name: 'Data Mining', university: 'UQ' },
     { code: 'COMP3506', name: 'Algorithms & Data Structures', university: 'UQ' },
     { code: 'COMP3702', name: 'Artificial Intelligence', university: 'UQ' },
-    { code: 'COMP4702', name: 'Machine Learning', university: 'UQ' },
-
-    // Engineering
-    { code: 'ENGG1100', name: 'Professional Engineering', university: 'UQ' },
-    { code: 'ENGG1200', name: 'Engineering Modelling & Problem Solving', university: 'UQ' },
-    { code: 'ENGG1300', name: 'Introduction to Electrical Systems', university: 'UQ' },
-    { code: 'ENGG1400', name: 'Engineering Mechanics: Statics & Dynamics', university: 'UQ' },
-    { code: 'ENGG1500', name: 'Engineering Thermodynamics', university: 'UQ' },
-    { code: 'ENGG1600', name: 'Introduction to Materials Science', university: 'UQ' },
-    { code: 'METR4201', name: 'Control Engineering 1', university: 'UQ' },
-    { code: 'METR4202', name: 'Robotics & Automation', university: 'UQ' },
-
-    // Science & Maths
-    { code: 'MATH1051', name: 'Calculus & Linear Algebra I', university: 'UQ' },
-    { code: 'MATH1052', name: 'Multivariate Calculus & Ordinary Differential Equations', university: 'UQ' },
-    { code: 'MATH1061', name: 'Discrete Mathematics', university: 'UQ' },
-    { code: 'MATH1071', name: 'Advanced Calculus & Linear Algebra I', university: 'UQ' },
-    { code: 'STAT1201', name: 'Analysis of Scientific Data', university: 'UQ' },
-    { code: 'STAT1301', name: 'Advanced Analysis of Scientific Data', university: 'UQ' },
-    { code: 'PHYS1001', name: 'Mechanics and Thermal Physics', university: 'UQ' },
-    { code: 'PHYS1002', name: 'Electromagnetism and Modern Physics', university: 'UQ' },
-    { code: 'BIOL1020', name: 'Genes, Cells and Evolution', university: 'UQ' },
-    { code: 'BIOL1030', name: 'Global Challenges in Biology', university: 'UQ' },
-    { code: 'CHEM1100', name: 'Chemistry 1', university: 'UQ' },
-    { code: 'CHEM1200', name: 'Chemistry 2', university: 'UQ' },
-
-    // Law & Business
-    { code: 'LAWS1111', name: 'Legal Method', university: 'UQ' },
-    { code: 'LAWS1112', name: 'Law of Torts A', university: 'UQ' },
-    { code: 'LAWS1113', name: 'Law of Contract A', university: 'UQ' },
-    { code: 'LAWS1114', name: 'Law of Torts B', university: 'UQ' },
-    { code: 'LAWS1115', name: 'Law of Contract B', university: 'UQ' },
-    { code: 'LAWS1116', name: 'Criminal Law and Procedure A', university: 'UQ' },
-    { code: 'ACCT1101', name: 'Accounting for Decision Making', university: 'UQ' },
-    { code: 'BISM1201', name: 'Transforming Business with Information Systems', university: 'UQ' },
-    { code: 'ECON1010', name: 'Introductory Microeconomics', university: 'UQ' },
-    { code: 'ECON1020', name: 'Introductory Macroeconomics', university: 'UQ' },
-    { code: 'FINM1401', name: 'Personal Finance', university: 'UQ' },
-    { code: 'MGTS1301', name: 'Introduction to Management', university: 'UQ' },
-    { code: 'MKTG1501', name: 'Foundations of Marketing', university: 'UQ' },
-
-    // Humanities & Social Sciences
-    { code: 'PSYC1020', name: 'Introduction to Psychology: Physiological & Cognitive', university: 'UQ' },
-    { code: 'PSYC1030', name: 'Introduction to Psychology: Developmental, Social & Clinical', university: 'UQ' },
-    { code: 'PSYC1040', name: 'Psychological Research Methodology I', university: 'UQ' },
-    { code: 'COMU1120', name: 'Media Legislation and Ethics', university: 'UQ' },
-    { code: 'COMU1130', name: 'Journalism: Investigation and Research', university: 'UQ' },
-    { code: 'POLS1201', name: 'Introduction to International Relations', university: 'UQ' },
 
     // --- QUT (Queensland University of Technology) ---
-    // Business
-    { code: 'BSB106', name: 'Dynamic Markets', university: 'QUT' },
-    { code: 'BSB107', name: 'Financial Performance and Responsibility', university: 'QUT' },
-    { code: 'BSB105', name: 'The Future of Business', university: 'QUT' },
-    { code: 'BSB111', name: 'Business Law and Ethics', university: 'QUT' },
-    { code: 'BSB113', name: 'Economics', university: 'QUT' },
-    { code: 'BSB123', name: 'Data Analysis', university: 'QUT' },
-    { code: 'BSB126', name: 'Marketing', university: 'QUT' },
-    { code: 'AYB200', name: 'Financial Accounting', university: 'QUT' },
-    { code: 'MGB200', name: 'Leading Organisations', university: 'QUT' },
-    { code: 'EFB222', name: 'Quantitative Methods for Economics and Finance', university: 'QUT' },
-
-    // Information Technology & Computer Science
-    { code: 'IFB101', name: 'Impact of IT', university: 'QUT' },
-    { code: 'IFB102', name: 'Introduction to Computer Systems', university: 'QUT' },
-    { code: 'IFB103', name: 'IT Systems Design', university: 'QUT' },
-    { code: 'IFB104', name: 'Building IT Systems', university: 'QUT' },
-    { code: 'IFB240', name: 'IT Project Management', university: 'QUT' },
-    { code: 'IFB299', name: 'Application Design and Development', university: 'QUT' },
     { code: 'CAB201', name: 'Programming Principles', university: 'QUT' },
     { code: 'CAB202', name: 'Microprocessors and Digital Systems', university: 'QUT' },
-    { code: 'CAB203', name: 'Discrete Structures', university: 'QUT' },
-    { code: 'CAB210', name: 'Software Architecture', university: 'QUT' },
-    { code: 'CAB230', name: 'Web Computing', university: 'QUT' },
     { code: 'CAB301', name: 'Algorithms and Complexity', university: 'QUT' },
-    { code: 'CAB302', name: 'Software Development', university: 'QUT' },
     { code: 'CAB403', name: 'Systems Programming', university: 'QUT' },
-    { code: 'CAB420', name: 'Machine Learning', university: 'QUT' },
     { code: 'CAB432', name: 'Cloud Computing', university: 'QUT' },
-
-    // Engineering & Science
-    { code: 'EGB100', name: 'Engineering Sustainability and Professional Practice', university: 'QUT' },
-    { code: 'EGB101', name: 'Engineering Design and Professional Practice', university: 'QUT' },
-    { code: 'EGB102', name: 'Energy and Sciences', university: 'QUT' },
-    { code: 'EGB103', name: 'Engineering Mechanics and Materials', university: 'QUT' },
-    { code: 'EGB111', name: 'Foundations of Engineering Design', university: 'QUT' },
-    { code: 'EGB113', name: 'Energy in Engineering Systems', university: 'QUT' },
-    { code: 'EGB120', name: 'Foundations of Electrical Engineering', university: 'QUT' },
-    { code: 'MZB125', name: 'Introductory Engineering Mathematics', university: 'QUT' },
-    { code: 'MZB126', name: 'Engineering Mathematics', university: 'QUT' },
-
-    // Law & Justice
-    { code: 'LWB136', name: 'Contracts A', university: 'QUT' },
-    { code: 'LWB137', name: 'Contracts B', university: 'QUT' },
-    { code: 'LWB145', name: 'Legal Foundations A', university: 'QUT' },
-    { code: 'LWB146', name: 'Legal Foundations B', university: 'QUT' },
-    { code: 'LWB147', name: 'Torts A', university: 'QUT' },
-    { code: 'LWB148', name: 'Torts B', university: 'QUT' },
-    { code: 'LBB101', name: 'Introduction to Law', university: 'QUT' },
-
-    // Health & Nursing
-    { code: 'NSB102', name: 'Introduction to Clinical Practice', university: 'QUT' },
-    { code: 'NSB113', name: 'Diversity and Health: Cultural Safety', university: 'QUT' },
-    { code: 'NSB117', name: 'Nursing and the Health Care System', university: 'QUT' },
-    { code: 'NSB204', name: 'Mental Health Nursing', university: 'QUT' },
-    { code: 'PYB007', name: 'Interpersonal Processes and Skills', university: 'QUT' },
-    { code: 'PYB100', name: 'Foundation Psychology', university: 'QUT' },
-    { code: 'PYB102', name: 'Introduction to Psychology 1', university: 'QUT' },
-
-    // Creative Industries
-    { code: 'CCB101', name: 'Introduction to Media and Communication', university: 'QUT' },
-    { code: 'CCB106', name: 'Popular Culture', university: 'QUT' },
-    { code: 'KxB101', name: 'Introduction to Design', university: 'QUT' },
-    { code: 'KxB102', name: 'Design Communication', university: 'QUT' },
+    { code: 'IFB104', name: 'Building IT Systems', university: 'QUT' },
 
     // --- Griffith University ---
-    // ICT & Engineering
     { code: '1001ICT', name: 'Programming 1', university: 'Griffith' },
     { code: '1005ICT', name: 'Programming 2', university: 'Griffith' },
-    { code: '1002ICT', name: 'Introduction to Computer Systems', university: 'Griffith' },
-    { code: '1003ICT', name: 'Information Management', university: 'Griffith' },
-    { code: '1004ICT', name: 'Introduction to Information Systems', university: 'Griffith' },
-    { code: '1701ICT', name: 'Creative Application Development', university: 'Griffith' },
-    { code: '1803ICT', name: 'Application Systems', university: 'Griffith' },
     { code: '2501ICT', name: 'Data Structures and Algorithms', university: 'Griffith' },
-    { code: '3624ICT', name: '3D Game Development', university: 'Griffith' },
     { code: '3801ICT', name: 'Software Engineering', university: 'Griffith' },
-    { code: '3805ICT', name: 'Advanced Algorithms', university: 'Griffith' },
-    { code: '3806ICT', name: 'Robotics, Agents and Reasoning', university: 'Griffith' },
-    { code: '3811ICT', name: 'Advanced Network Architectures', university: 'Griffith' },
-    { code: '7502ICT', name: 'Fundamentals of Blockchain', university: 'Griffith' },
-    { code: '7905ICT', name: 'Cyber Security Essentials', university: 'Griffith' },
 
-    // Business & Commerce
-    { code: '1001GBS', name: 'Why Geography Matters', university: 'Griffith' },
-    { code: '1002GBS', name: 'Real World Economics', university: 'Griffith' },
-    { code: '1003GBS', name: 'Managing Organisations', university: 'Griffith' },
-    { code: '1101AFE', name: 'Accounting for Decision Making', university: 'Griffith' },
-    { code: '1201AFE', name: 'Financial Institutions and Markets', university: 'Griffith' },
-    { code: '1303AFE', name: 'Economics for Decision Making 1', university: 'Griffith' },
-    { code: '1304AFE', name: 'Economics for Decision Making 2', university: 'Griffith' },
+    // --- USYD (University of Sydney) ---
+    { code: 'INFO1110', name: 'Introduction to Programming', university: 'USYD' },
+    { code: 'INFO1111', name: 'Computing 1A Professionalism', university: 'USYD' },
+    { code: 'INFO1112', name: 'Operating Systems and Systems Programming', university: 'USYD' },
+    { code: 'INFO1113', name: 'Object-Oriented Programming', university: 'USYD' },
+    { code: 'COMP2123', name: 'Data Structures and Algorithms', university: 'USYD' },
+    { code: 'COMP2017', name: 'Systems Programming', university: 'USYD' },
+    { code: 'COMP3027', name: 'Algorithm Design', university: 'USYD' },
+    { code: 'COMP3308', name: 'Introduction to Artificial Intelligence', university: 'USYD' },
+    { code: 'SOFT2412', name: 'Agile Software Development Practices', university: 'USYD' },
+    { code: 'ELEC1601', name: 'Introduction to Computer Systems', university: 'USYD' },
 
-    // Criminology & Law
-    { code: '1001CCJ', name: 'Introduction to Criminology and Criminal Justice', university: 'Griffith' },
-    { code: '1013CCJ', name: 'Introduction to Criminology', university: 'Griffith' },
-    { code: '2004CCJ', name: 'Police, Courts and Criminal Law', university: 'Griffith' },
-    { code: '3024CCJ', name: 'Crime Prevention', university: 'Griffith' },
-    { code: '1001LAW', name: 'Foundations of Law', university: 'Griffith' },
-    { code: '1002LAW', name: 'Contracts 1', university: 'Griffith' },
+    // --- UNSW (University of New South Wales) ---
+    { code: 'COMP1511', name: 'Programming Fundamentals', university: 'UNSW' },
+    { code: 'COMP1521', name: 'Computer Systems Fundamentals', university: 'UNSW' },
+    { code: 'COMP1531', name: 'Software Engineering Fundamentals', university: 'UNSW' },
+    { code: 'COMP2521', name: 'Data Structures and Algorithms', university: 'UNSW' },
+    { code: 'COMP2511', name: 'Object-Oriented Design & Programming', university: 'UNSW' },
+    { code: 'COMP3121', name: 'Algorithms and Programming Techniques', university: 'UNSW' },
+    { code: 'COMP3311', name: 'Database Systems', university: 'UNSW' },
+    { code: 'COMP3331', name: 'Computer Networks and Applications', university: 'UNSW' },
+    { code: 'COMP6080', name: 'Web Front-End Programming', university: 'UNSW' },
+    { code: 'COMP9414', name: 'Artificial Intelligence', university: 'UNSW' },
 
-    // Health & Psychology
-    { code: '1001PSY', name: 'Introductory Cognitive and Biological Psychology', university: 'Griffith' },
-    { code: '1002PSY', name: 'Introductory Individual and Social Psychology', university: 'Griffith' },
-    { code: '1003PSY', name: 'Research Methods and Statistics in Psychology 1', university: 'Griffith' },
-    { code: '1004PSY', name: 'Research Methods and Statistics in Psychology 2', university: 'Griffith' },
-    { code: '1205MED', name: 'Health and Disease 1', university: 'Griffith' },
-    { code: '1016MED', name: 'Anatomy and Physiology Systems 1', university: 'Griffith' },
-    { code: '1001NRS', name: 'Foundations of Nursing Practice 1', university: 'Griffith' },
-    { code: '1002NRS', name: 'Foundations of Nursing Practice 2', university: 'Griffith' },
-    { code: '1001MSC', name: 'Introduction to Biomedical Science', university: 'Griffith' },
+    // --- UniMelb (University of Melbourne) ---
+    { code: 'COMP10001', name: 'Foundations of Computing', university: 'UniMelb' },
+    { code: 'COMP10002', name: 'Foundations of Algorithms', university: 'UniMelb' },
+    { code: 'COMP20005', name: 'Engineering Computation', university: 'UniMelb' },
+    { code: 'COMP20007', name: 'Design of Algorithms', university: 'UniMelb' },
+    { code: 'COMP30022', name: 'IT Project', university: 'UniMelb' },
+    { code: 'COMP30023', name: 'Computer Systems', university: 'UniMelb' },
+    { code: 'COMP30026', name: 'Models of Computation', university: 'UniMelb' },
+    { code: 'SWEN30006', name: 'Software Modelling and Design', university: 'UniMelb' },
+    { code: 'INFO20003', name: 'Database Systems', university: 'UniMelb' },
+    { code: 'INFO30005', name: 'Web Information Technologies', university: 'UniMelb' },
 
-    // Arts & Creative
-    { code: '1001QCA', name: 'Creative Practice 1', university: 'Griffith' },
-    { code: '1002QCA', name: 'Creative Practice 2', university: 'Griffith' },
-    { code: '1010HUM', name: 'Understanding the Social World', university: 'Griffith' },
+    // --- Monash University ---
+    { code: 'FIT1008', name: 'Introduction to Computer Science', university: 'Monash' },
+    { code: 'FIT1045', name: 'Algorithms and Programming Fundamentals', university: 'Monash' },
+    { code: 'FIT1051', name: 'Programming Fundamentals in Java', university: 'Monash' },
+    { code: 'FIT2004', name: 'Algorithms and Data Structures', university: 'Monash' },
+    { code: 'FIT2014', name: 'Theory of Computation', university: 'Monash' },
+    { code: 'FIT2102', name: 'Programming Paradigms', university: 'Monash' },
+    { code: 'FIT3155', name: 'Advanced Data Structures and Algorithms', university: 'Monash' },
+    { code: 'FIT3171', name: 'Databases', university: 'Monash' },
+    { code: 'ENG1003', name: 'Engineering Mobile Apps', university: 'Monash' },
+    { code: 'MAT1830', name: 'Discrete Mathematics for Computer Science', university: 'Monash' },
+
+    // --- UTS (University of Technology Sydney) ---
+    { code: '48023', name: 'Programming Fundamentals', university: 'UTS' },
+    { code: '31268', name: 'Web Systems', university: 'UTS' },
+    { code: '31269', name: 'Business Requirements Modelling', university: 'UTS' },
+    { code: '41092', name: 'Network Fundamentals', university: 'UTS' },
+    { code: '31251', name: 'Data Structures and Algorithms', university: 'UTS' },
+    { code: '31257', name: 'Information System Development Methodologies', university: 'UTS' },
+    { code: '48024', name: 'Applications Programming', university: 'UTS' },
+    { code: '41029', name: 'Engineering Research Preparation', university: 'UTS' },
+    { code: '31271', name: 'Database Fundamentals', university: 'UTS' },
 ];
 
 export const DEGREES = [

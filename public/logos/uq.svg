@@ -1,0 +1,5 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="200" height="200" fill="#51247A"/>
+  <path d="M100 40V160M40 100H160" stroke="#96780E" stroke-width="20"/>
+  <text x="100" y="115" font-family="Arial, sans-serif" font-weight="bold" font-size="60" text-anchor="middle" fill="#FFFFFF">UQ</text>
+</svg>

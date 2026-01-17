@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase';
 import AuthLayout from '@/components/AuthLayout';
 import Input from '@/components/ui/Input';
 import Autocomplete from '@/components/ui/Autocomplete';
-import { DEGREES, INTERESTS, Course } from '../../data/courses';
+import { DEGREES, INTERESTS, Course, UNIVERSITIES } from '../../data/courses';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function SignupPage() {
@@ -94,12 +94,9 @@ export default function SignupPage() {
             // This is safer. 
 
             // Get default location based on university
-            const universityLocations = {
-                'UQ': { lat: -27.4975, lng: 153.0137 },
-                'QUT': { lat: -27.4772, lng: 153.0285 },
-                'Griffith': { lat: -27.5544, lng: 153.0505 }
-            };
-            const defaultLocation = universityLocations[formData.university as keyof typeof universityLocations] || { lat: -27.4975, lng: 153.0137 };
+            // Get default location from UNIVERSITIES data
+            const selectedUni = UNIVERSITIES.find(u => u.id === formData.university);
+            const defaultLocation = selectedUni?.location || { lat: -27.4975, lng: 153.0137 };
 
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email: formData.email,
@@ -252,20 +249,40 @@ export default function SignupPage() {
                     {/* University */}
                     <div style={{ marginBottom: '16px' }}>
                         <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 500, color: 'rgba(255,255,255,0.8)' }}>University</label>
-                        <select
-                            value={formData.university}
-                            onChange={e => updateField('university', e.target.value)}
-                            style={{
-                                width: '100%', padding: '12px', borderRadius: '8px',
-                                background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)',
-                                color: 'white', outline: 'none'
-                            }}
-                        >
-                            <option value="" disabled>Select Campus</option>
-                            <option value="UQ">University of Queensland</option>
-                            <option value="QUT">Queensland University of Technology</option>
-                            <option value="Griffith">Griffith University</option>
-                        </select>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px' }}>
+                            {UNIVERSITIES.map(uni => {
+                                const isSelected = formData.university === uni.id;
+                                return (
+                                    <button
+                                        key={uni.id}
+                                        type="button"
+                                        onClick={() => updateField('university', uni.id)}
+                                        style={{
+                                            border: isSelected ? `2px solid ${uni.color}` : '1px solid rgba(255,255,255,0.1)',
+                                            background: isSelected ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.05)',
+                                            borderRadius: '12px',
+                                            padding: '16px',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'center',
+                                            gap: '12px',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s',
+                                        }}
+                                    >
+                                        <div style={{
+                                            width: '60px', height: '60px', borderRadius: '8px',
+                                            background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px'
+                                        }}>
+                                            <img src={uni.logo} alt={uni.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                        </div>
+                                        <span style={{ fontSize: '0.85rem', color: 'white', textAlign: 'center', fontWeight: 500 }}>
+                                            {uni.name}
+                                        </span>
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </div>
 
                     {/* Degree */}
