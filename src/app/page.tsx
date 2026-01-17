@@ -2,14 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import type { User } from '../types';
+import type { User, Sesh } from '../types';
 import { supabase } from '@/lib/supabase';
 import { AnimatePresence, motion } from 'framer-motion';
 import MeetupFlow from '@/components/MeetupFlow';
 import ProfileSidebar from '@/components/ProfileSidebar';
 import EditProfileSidebar from '@/components/EditProfileSidebar';
 import IncomingRequestModal from '@/components/IncomingRequestModal';
-import { UserIcon } from '@heroicons/react/24/solid';
+import CreateSeshModal from '@/components/CreateSeshModal';
+import JoinSeshModal from '@/components/JoinSeshModal';
+import { UserIcon, PlusIcon } from '@heroicons/react/24/solid';
 
 // Dynamically import MapComponent to disable SSR
 const MapComponent = dynamic(() => import('@/components/MapComponent'), {
@@ -25,11 +27,21 @@ export default function Home() {
   const [viewState, setViewState] = useState<'map' | 'meetup-offer' | 'timer' | 'confirmed'>('map');
   const [incomingRequest, setIncomingRequest] = useState<{ id: string; sender_id: string; activity: string } | null>(null);
 
+  // Sesh State
+  const [seshes, setSeshes] = useState<Sesh[]>([]);
+  const [isCreatingSesh, setIsCreatingSesh] = useState(false);
+  const [selectedSesh, setSelectedSesh] = useState<Sesh | null>(null);
+
   // 1. Initial Data Fetch & Realtime Subscription
   useEffect(() => {
     const fetchUsers = async () => {
       const { data } = await supabase.from('users').select('*');
       if (data) setUsers(data as User[]);
+    };
+
+    const fetchSeshes = async () => {
+      const { data } = await supabase.from('seshes').select('*').eq('status', 'active');
+      if (data) setSeshes(data as Sesh[]);
     };
 
     const getSession = async () => {
@@ -42,6 +54,7 @@ export default function Home() {
     };
 
     fetchUsers();
+    fetchSeshes();
     getSession();
 
     // Subscribe to User Changes (Location Updates)
@@ -56,8 +69,23 @@ export default function Home() {
       })
       .subscribe();
 
+    const seshSubscription = supabase
+      .channel('public:seshes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'seshes' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          setSeshes(prev => [...prev, payload.new as Sesh]);
+        } else if (payload.eventType === 'UPDATE') {
+          setSeshes(prev => prev.map(s => s.id === payload.new.id ? payload.new as Sesh : s)
+            .filter(s => s.status === 'active')); // Remove if not active
+        } else if (payload.eventType === 'DELETE') {
+          setSeshes(prev => prev.filter(s => s.id !== payload.old.id));
+        }
+      })
+      .subscribe();
+
     return () => {
       supabase.removeChannel(userSubscription);
+      supabase.removeChannel(seshSubscription);
     };
   }, []);
 
@@ -157,7 +185,13 @@ export default function Home() {
   return (
     <main style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
       {/* Map Layer */}
-      <MapComponent users={users} onUserClick={handleUserClick} center={mapCenter} />
+      <MapComponent
+        users={users}
+        seshes={seshes}
+        onUserClick={handleUserClick}
+        onSeshClick={setSelectedSesh}
+        center={mapCenter}
+      />
 
       {/* Profile Button (Top Left) */}
       {currentUser && (
@@ -257,6 +291,92 @@ export default function Home() {
               }}
             />
           </motion.div>
+        )}
+      </AnimatePresence>
+      {/* Sesh Creation FAB */}
+      {currentUser && !isCreatingSesh && !selectedSesh && viewState === 'map' && (
+        <motion.button
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => setIsCreatingSesh(true)}
+          className="fab-button btn-primary"
+          style={{
+            position: 'absolute',
+            bottom: '32px',
+            left: '50%',
+            transform: 'translateX(-50%)', // This will be overridden by motion, handle carefully
+            marginLeft: '-28px', // Half width centering hack if transform conflicts
+            width: '56px',
+            height: '56px',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            boxShadow: '0 4px 20px rgba(124, 58, 237, 0.6)',
+            padding: 0
+          }}
+        >
+          <PlusIcon style={{ width: '32px', height: '32px', color: 'white' }} />
+        </motion.button>
+      )}
+
+      {/* Create Sesh Modal */}
+      <AnimatePresence>
+        {isCreatingSesh && currentUser && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.6 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsCreatingSesh(false)}
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'black',
+                zIndex: 1001
+              }}
+            />
+            <CreateSeshModal
+              currentUser={currentUser}
+              onClose={() => setIsCreatingSesh(false)}
+              onCreated={() => setIsCreatingSesh(false)}
+            />
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Join Sesh Modal */}
+      <AnimatePresence>
+        {selectedSesh && currentUser && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.6 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedSesh(null)}
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'black',
+                zIndex: 1002
+              }}
+            />
+            <JoinSeshModal
+              sesh={selectedSesh}
+              currentUser={currentUser}
+              onClose={() => setSelectedSesh(null)}
+              onJoined={() => setSelectedSesh(null)} // Refresh will reuse subscription
+            />
+          </>
         )}
       </AnimatePresence>
     </main>
