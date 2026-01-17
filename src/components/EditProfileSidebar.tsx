@@ -109,7 +109,7 @@ const EditProfileSidebar: React.FC<EditProfileSidebarProps> = ({ user, onClose, 
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '24px' }}>
                         <div style={{ position: 'relative', width: '96px', height: '96px' }}>
                             <img
-                                src={formData.avatarUrl}
+                                src={formData.avatar_url}
                                 alt="Profile"
                                 style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', border: '3px solid var(--primary-color)' }}
                             />

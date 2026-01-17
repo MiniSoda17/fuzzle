@@ -55,7 +55,7 @@ export default function IncomingRequestModal({ request, onClose }: IncomingReque
                 border: '3px solid var(--primary-color)',
                 margin: '0 auto 16px auto', overflow: 'hidden'
             }}>
-                <img src={sender.avatarUrl} alt={sender.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <img src={sender.avatar_url} alt={sender.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             </div>
 
             <h3 style={{ fontSize: '1.2rem', marginBottom: '8px' }}>

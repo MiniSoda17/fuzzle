@@ -220,9 +220,9 @@ export default function Home() {
             cursor: 'pointer'
           }}
         >
-          {currentUser.avatarUrl ? (
+          {currentUser.avatar_url ? (
             <img
-              src={currentUser.avatarUrl}
+              src={currentUser.avatar_url}
               alt="Profile"
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />

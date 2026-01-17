@@ -67,7 +67,7 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ user, onClose, onOffer 
             {/* Header Image */}
             <div style={{ position: 'relative', height: '220px', flexShrink: 0 }}>
                 <img
-                    src={user.avatarUrl}
+                    src={user.avatar_url}
                     alt={user.name}
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />

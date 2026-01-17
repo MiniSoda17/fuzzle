@@ -3,7 +3,7 @@ export type ActivityType = 'study' | 'hoops' | 'coffee' | 'walk' | 'food';
 export interface User {
     id: string;
     name: string;
-    avatarUrl: string;
+    avatar_url: string;
     degree: string;
     university: 'UQ' | 'QUT' | 'Griffith';
     year: number;
@@ -12,7 +12,7 @@ export interface User {
     interests: string[];
     lat: number;
     lng: number;
-    isOnline: boolean;
+    is_online: boolean;
 }
 
 export type SeshActivityType = 'sports' | 'study' | 'coffee' | 'food' | 'party' | 'other';
@@ -70,7 +70,7 @@ const generateUsers = (count: number): User[] => {
         users.push({
             id: `user-${i}`,
             name: `Student ${i + 1}`, // In real app, real names
-            avatarUrl: profileImages[i % profileImages.length],
+            avatar_url: profileImages[i % profileImages.length],
             university: uni,
             degree: DEGREES[Math.floor(Math.random() * DEGREES.length)],
             year: Math.floor(Math.random() * 4) + 1,
@@ -79,7 +79,7 @@ const generateUsers = (count: number): User[] => {
             interests: Array.from({ length: 4 }, () => INTERESTS[Math.floor(Math.random() * INTERESTS.length)]),
             lat,
             lng,
-            isOnline: Math.random() > 0.3
+            is_online: Math.random() > 0.3
         });
     }
     return users;
@@ -100,7 +100,7 @@ MOCK_USERS[7].name = "Michael Scott";
 export const CURRENT_USER: User = {
     id: 'current-user',
     name: 'Atticus Finch',
-    avatarUrl: '/student_profile_1_1768606123923.png',
+    avatar_url: '/student_profile_1_1768606123923.png',
     university: 'UQ',
     degree: 'Law',
     year: 3,
@@ -109,5 +109,5 @@ export const CURRENT_USER: User = {
     interests: ['Reading', 'Justice', 'Coffee'],
     lat: -27.4975,
     lng: 153.0137,
-    isOnline: true
+    is_online: true
 };

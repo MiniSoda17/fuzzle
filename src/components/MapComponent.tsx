@@ -57,7 +57,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ users, seshes = [], onUserC
                 // Create custom icon for each user
                 const customIcon = L.divIcon({
                     className: 'custom-marker',
-                    html: `<div class="marker-content"><img src="${user.avatarUrl}" alt="${user.name}" /></div>`,
+                    html: `<div class="marker-content"><img src="${user.avatar_url}" alt="${user.name}" /></div>`,
                     iconSize: [48, 48],
                     iconAnchor: [24, 24]
                 });
