@@ -210,9 +210,9 @@ export default function Home() {
       <AnimatePresence>
         {(viewState === 'meetup-offer' || viewState === 'timer' || viewState === 'confirmed') && selectedUser && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            initial={{ opacity: 0, scale: 0.95, x: "-50%", y: "-50%" }}
+            animate={{ opacity: 1, scale: 1, x: "-50%", y: "-50%" }}
+            exit={{ opacity: 0, scale: 0.95, x: "-50%", y: "-50%" }}
             className="glass-panel meetup-modal"
             style={{
               position: 'absolute',
